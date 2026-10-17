@@ -1,8 +1,7 @@
-# Research while code signing is pending (pcapng workflow)
+# Research with Wireshark (pcapng workflow)
 
 `pt-research record` needs our own, unsigned, program to capture live traffic, and Windows Smart App Control may refuse to
-run it (see [SIGNING.md](SIGNING.md)). While the Artifact Signing account is being set up (the identity check takes 1 to 20 business
-days) you can still collect research data this way:
+run it. When that happens you can still collect research data this way:
 
 1. **Record** the game's traffic with **Wireshark's `dumpcap`**. It is signed by the Wireshark Foundation, so Smart App Control
    allows it. The result is a `.pcapng` file.
@@ -111,7 +110,7 @@ If Smart App Control also stops `pt-research` from running (the file loads in th
    .\scripts\publish-research.ps1
    ```
 
-   This runs `dotnet publish src/PetTracker.Research -c Release -r win-x64 --self-contained -o artifacts/pt-research` (and signs the result if signing is configured).
+   This runs `dotnet publish src/PetTracker.Research -c Release -r win-x64 --self-contained -o artifacts/pt-research`.
 3. Put your `.pcapng` and `markers.txt` into the `captures` folder, then double-click `scripts\sandbox.wsb`. It maps `artifacts\pt-research` and
    `captures` **read-only** into the sandbox and opens a PowerShell window there with `pt-research` on the PATH. (If the repository is not at
    `D:\Development\GitHub\Aion2-PetTracker`, edit the two `HostFolder` lines in the file first.)
@@ -125,9 +124,9 @@ If Smart App Control also stops `pt-research` from running (the file loads in th
 The folders are read-only on purpose, so output goes to the sandbox's own Desktop. **When you close the sandbox everything in it is deleted.**
 Copy anything you want to keep (copy in the sandbox, paste on your desktop) before closing, or share the printed output.
 The sandbox has no network access in this configuration. It does not inherit your desktop's Smart App Control setting, but if it is
-blocked there as well, signing is the only way forward.
+blocked there as well, this workflow cannot help.
 
-## When signing is ready
+## When `pt-research` runs normally
 
-Switch to the normal `pt-research record` workflow in the [research guide](RESEARCH-GUIDE.md). It also records the F9 markers by itself, so the
+Switch back to the normal `pt-research record` workflow in the [research guide](RESEARCH-GUIDE.md). It also records the F9 markers by itself, so the
 marker text file is no longer needed. Old imported captures keep working.

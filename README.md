@@ -48,8 +48,8 @@ Windows" entry. It keeps your collection, history, settings and pet names; add `
 collection window stays in the tray. Launching the tracker a second time just opens the collection window of the first.
 
 **Smart App Control.** On a PC with Smart App Control enforced, Windows refuses to run unsigned programs, which includes a
-freshly built tracker (error `0x800711C7`). You cannot allow-list a single file. Signing is opt-in and covered in
-[docs/SIGNING.md](docs/SIGNING.md); until then see [docs/RESEARCH-WITHOUT-SIGNING.md](docs/RESEARCH-WITHOUT-SIGNING.md).
+freshly built tracker (error `0x800711C7`). You cannot allow-list a single file. For research,
+[docs/RESEARCH-PCAPNG.md](docs/RESEARCH-PCAPNG.md) describes a workaround with Wireshark's signed `dumpcap`.
 
 **After a game update.** Opcodes can be renumbered by a patch. The tracker notices ("Unknown version"), offers detected new
 codes with an Apply button, and has an opcode editor in Settings. The whole routine, including the `pt-research

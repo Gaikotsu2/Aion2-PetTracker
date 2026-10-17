@@ -7,10 +7,7 @@
                             data\ next to it. Framework-dependent by default (needs the .NET 10 Desktop Runtime);
                             -SelfContained bundles the runtime instead (much larger, runs anywhere).
   artifacts\pt-research     pt-research.exe, self-contained (it is meant to run in Windows Sandbox, see
-                            docs\RESEARCH-WITHOUT-SIGNING.md and scripts\sandbox.wsb). Skip it with -SkipResearch.
-
-  Signing stays opt-in: it only happens when signing\metadata.json exists or you pass -p:SignBuild=true
-  (see docs\SIGNING.md). Nothing here requires it.
+                            docs\RESEARCH-PCAPNG.md and scripts\sandbox.wsb). Skip it with -SkipResearch.
 
 .PARAMETER SelfContained
   Bundle the .NET runtime into PetTracker.App.exe.
@@ -22,7 +19,7 @@
   Publish only pt-research (this is what publish-research.ps1 does).
 
 .PARAMETER ExtraArgs
-  Passed to every dotnet publish, for example -p:SignBuild=true.
+  Passed to every dotnet publish, for example -p:Version=0.2.0.
 #>
 [CmdletBinding()]
 param(

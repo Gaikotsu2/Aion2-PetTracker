@@ -7,7 +7,6 @@ obj/
 *.pcapng
 TestResults/
 publish/
-signing/metadata.json
 artifacts/
 captures/
 *.pcap
