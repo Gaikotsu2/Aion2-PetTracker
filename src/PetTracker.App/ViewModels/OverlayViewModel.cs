@@ -10,7 +10,10 @@ public sealed class OverlayViewModel : ObservableObject
     public OverlayViewModel(TrackerModel model)
     {
         Model = model;
-        model.StatusChanged += () => { Raise(nameof(StatusText)); Raise(nameof(StatusBrush)); };
+        model.StatusChanged += () => { Raise(nameof(StatusText)); Raise(nameof(StatusBrush)); Raise(nameof(StatusTooltip)); };
+        model.DetectionChanged += () => { Raise(nameof(ShowDetection)); Raise(nameof(DetectionDetail)); };
+        ApplyDetectionCommand = new RelayCommand(model.ApplyDetection);
+        DismissDetectionCommand = new RelayCommand(model.DismissDetection);
         model.SessionChanged += () => { Raise(nameof(SessionText)); Raise(nameof(SoulsText)); Raise(nameof(RateText)); };
         model.PinsChanged += RebuildPinned;
         model.Catalog.Changed += RebuildPinned;
@@ -22,6 +25,13 @@ public sealed class OverlayViewModel : ObservableObject
     public ObservableCollection<PetRowViewModel> Pinned { get; } = [];
 
     public string StatusText => Model.Status.Text;
+    public string StatusTooltip => Model.StatusTooltip;
+
+    public string DetectionText => "Pet messages seem to have moved after a game update. Detected new codes — Apply?";
+    public bool ShowDetection => Model.PendingDetection is not null;
+    public string DetectionDetail => Model.DetectionSummary;
+    public System.Windows.Input.ICommand ApplyDetectionCommand { get; }
+    public System.Windows.Input.ICommand DismissDetectionCommand { get; }
 
     public Brush StatusBrush => Model.Status.Kind switch
     {

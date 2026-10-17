@@ -167,7 +167,7 @@
 
         <!-- summary header -->
         <DockPanel Grid.Row="0">
-            <Border DockPanel.Dock="Right" Background="{Binding Overlay.StatusBrush}" CornerRadius="10" Padding="10,3" VerticalAlignment="Center">
+            <Border DockPanel.Dock="Right" Background="{Binding Overlay.StatusBrush}" CornerRadius="10" Padding="10,3" VerticalAlignment="Center" ToolTip="{Binding StatusTooltip}">
                 <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" Foreground="White" />
             </Border>
             <StackPanel>
@@ -177,8 +177,24 @@
             </StackPanel>
         </DockPanel>
 
+        <StackPanel Grid.Row="1">
+        <!-- opcodes moved after a game update: detected by shape, applied only on click -->
+        <Border Margin="0,10,0,0" Padding="10,8" CornerRadius="6" Background="#33E5B341" BorderBrush="{StaticResource WarnBrush}" BorderThickness="1"
+                Visibility="{Binding Overlay.ShowDetection, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
+                    <Button Content="Apply" Command="{Binding Overlay.ApplyDetectionCommand}" />
+                    <Button Content="Not now" Command="{Binding Overlay.DismissDetectionCommand}" Margin="6,0,0,0" />
+                </StackPanel>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Overlay.DetectionText}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Overlay.DetectionDetail}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
         <!-- capture problem (for example Npcap missing) -->
-        <Border Grid.Row="1" Margin="0,10,0,0" Padding="10,8" CornerRadius="6" Background="#33E5B341" BorderBrush="{StaticResource WarnBrush}" BorderThickness="1"
+        <Border Margin="0,10,0,0" Padding="10,8" CornerRadius="6" Background="#33E5B341" BorderBrush="{StaticResource WarnBrush}" BorderThickness="1"
                 Visibility="{Binding HasCaptureProblem, Converter={StaticResource BoolToVis}}">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="Get Npcap (npcap.com)" Command="{Binding OpenNpcapCommand}" Margin="10,0,0,0"
@@ -189,6 +205,8 @@
                 </TextBlock>
             </DockPanel>
         </Border>
+
+        </StackPanel>
 
         <ListBox Grid.Row="2" Margin="0,10,0,6" Style="{StaticResource Chips}" ItemsSource="{Binding TabOptions}" SelectedItem="{Binding SelectedTab}" />
 
@@ -314,6 +332,58 @@
                     <Button Content="Apply and restart capture" Command="{Binding ApplyAdapterCommand}" Margin="8,0,0,0" />
                 </StackPanel>
 
+                <TextBlock Text="Startup" FontSize="15" FontWeight="SemiBold" Margin="0,18,0,6" />
+                <CheckBox Content="Start with Windows (minimized: the overlay only, the collection window stays in the tray)"
+                          IsChecked="{Binding StartWithWindows}" IsEnabled="{Binding CanStartWithWindows}" />
+                <TextBlock Text="{Binding AutoStartMessage}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="Adds one value under HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run. Untick to remove it." />
+
+                <TextBlock Text="Opcodes" FontSize="15" FontWeight="SemiBold" Margin="0,18,0,6" />
+                <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,6"
+                           Text="Which network opcodes carry which pet message. A game update can renumber them. Override = hex opcodes, comma separated (for example 0990, 1490); leave it empty to use the default. Saving reloads the opcodes at once." />
+                <Grid Margin="0,0,0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Message" Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="1" Text="Default" Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="2" Text="Override" Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="3" Text="In effect" Style="{StaticResource Muted}" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding OpcodeRows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,0,4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding DefaultText}" VerticalAlignment="Center" FontFamily="Consolas" />
+                                    <TextBox Grid.Column="2" Text="{Binding OverrideText, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" Margin="0,0,8,0" />
+                                    <TextBlock Grid.Column="3" Text="{Binding EffectiveText}" VerticalAlignment="Center" FontFamily="Consolas" />
+                                </Grid>
+                                <TextBlock Text="{Binding Error}" Foreground="{StaticResource WarnBrush}" TextWrapping="Wrap" Margin="280,2,0,0"
+                                           Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <WrapPanel Margin="0,6,0,0">
+                    <Button Content="Save and reload" Command="{Binding SaveOpcodesCommand}" Margin="0,0,8,4" />
+                    <Button Content="Reset to defaults" Command="{Binding ResetOpcodesCommand}" Margin="0,0,8,4" />
+                    <Button Content="Open opcodes.json" Command="{Binding OpenOpcodesFileCommand}" Margin="0,0,8,4" />
+                    <Button Content="Reload from file" Command="{Binding ReloadOpcodesCommand}" Margin="0,0,8,4" />
+                </WrapPanel>
+                <TextBlock Text="{Binding OpcodeMessage}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+
                 <TextBlock Text="Data" FontSize="15" FontWeight="SemiBold" Margin="0,18,0,6" />
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{Binding DataFolder}" VerticalAlignment="Center" Style="{StaticResource Muted}" />
@@ -322,6 +392,11 @@
                 <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
                            Text="collection.json, events.jsonl, settings.json and pet-names.json (your own pet names) live here." />
                 <Button Content="Reset session stats" Command="{Binding ResetSessionCommand}" HorizontalAlignment="Left" Margin="0,18,0,12" />
+
+                <TextBlock Text="About" FontSize="15" FontWeight="SemiBold" Margin="0,18,0,6" />
+                <TextBlock Text="{Binding VersionText}" />
+                <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,18"
+                           Text="Passive packet reader: it never touches the game process. Pet data credit: TH.GL (aion2.th.gl). After a game update see docs/PATCH-DAY.md." />
             </StackPanel>
         </ScrollViewer>
     </Grid>

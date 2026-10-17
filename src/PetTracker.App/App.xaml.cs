@@ -5,6 +5,7 @@ using PetTracker.App.Infrastructure;
 using PetTracker.App.ViewModels;
 using PetTracker.App.Views;
 using PetTracker.Core.Persistence;
+using PetTracker.Core.Startup;
 
 namespace PetTracker.App;
 
@@ -18,21 +19,43 @@ public partial class App : Application
     private System.Windows.Forms.NotifyIcon? _tray;
     private System.Windows.Forms.ToolStripMenuItem? _clickThroughItem;
     private bool _exiting;
+    private SingleInstanceGuard? _guard;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandled;
 
-        // "--data <folder>" keeps a test run away from the real %AppData% files.
-        var args = e.Args;
-        var folderIndex = Array.IndexOf(args, "--data");
-        var paths = AppPaths.For(folderIndex >= 0 && folderIndex + 1 < args.Length ? args[folderIndex + 1] : null);
-        var autoExitSeconds = Array.IndexOf(args, "--exit-after") is var i and >= 0 && i + 1 < args.Length && int.TryParse(args[i + 1], out var s) ? s : 0;
+        // "--data <folder>" keeps a test run away from the real %AppData% files (and from the real running tracker).
+        var options = StartupOptions.Parse(e.Args);
+        var paths = AppPaths.For(options.DataFolder);
+        var autoExitSeconds = options.ExitAfterSeconds;
+
+        // One tracker per data folder: a later launch asks the first to show its window (or quit) and leaves.
+        _guard = new SingleInstanceGuard(SingleInstanceGuard.KeyFor(paths.Folder));
+        if (!_guard.IsFirst)
+        {
+            if (options.Quit)
+                _guard.SignalQuit();
+            else if (!options.Minimized)
+                _guard.SignalShow();
+            _guard.Dispose();
+            _guard = null;
+            Shutdown();
+            return;
+        }
+        if (options.Quit) // nothing running
+        {
+            _guard.Dispose();
+            _guard = null;
+            Shutdown();
+            return;
+        }
+        _guard.Listen(() => Dispatcher.BeginInvoke(new Action(ShowCollection)), () => Dispatcher.BeginInvoke(new Action(Quit)));
 
         _model = new TrackerModel(paths);
         var overlayVm = new OverlayViewModel(_model);
-        var mainVm = new MainViewModel(_model, overlayVm, ApplyHotkeys, _model.RestartCapture);
+        var mainVm = new MainViewModel(_model, overlayVm, ApplyHotkeys, _model.RestartCapture, new AutoStart(new RegistryRunKeyStore()), Environment.ProcessPath);
 
         _overlay = new OverlayWindow(overlayVm);
         _overlay.EnsureHandle();
@@ -50,7 +73,8 @@ public partial class App : Application
 
         if (_model.Settings.OverlayVisible)
             _overlay.Show();
-        _main.Show();
+        if (!options.Minimized)
+            _main.Show(); // --minimized (Start with Windows): overlay only, the collection window stays in the tray
 
         _model.StartCapture();
 
@@ -159,6 +183,8 @@ public partial class App : Application
         _exiting = true;
         _timer?.Stop();
         _hotkeys?.Dispose();
+        _guard?.Dispose();
+        _guard = null;
         if (_tray is not null)
         {
             _tray.Visible = false;

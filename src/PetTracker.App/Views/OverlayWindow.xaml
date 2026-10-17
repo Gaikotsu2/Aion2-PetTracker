@@ -37,14 +37,29 @@
 
             <!-- status pill + session stats -->
             <DockPanel Grid.Row="0" LastChildFill="False">
-                <Border DockPanel.Dock="Left" Background="{Binding StatusBrush}" CornerRadius="9" Padding="9,2">
+                <Border DockPanel.Dock="Left" Background="{Binding StatusBrush}" CornerRadius="9" Padding="9,2" ToolTip="{Binding StatusTooltip}">
                     <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" Foreground="White" />
                 </Border>
                 <TextBlock DockPanel.Dock="Right" Text="{Binding SessionText}" VerticalAlignment="Center" Style="{StaticResource Muted}" />
             </DockPanel>
 
-            <!-- live feed -->
-            <ItemsControl Grid.Row="1" Margin="0,8,0,0" ItemsSource="{Binding Feed}">
+            <!-- live feed, with the "pet messages moved" banner above it -->
+            <StackPanel Grid.Row="1" Margin="0,8,0,0">
+            <Border Margin="0,0,0,6" Padding="8,6" CornerRadius="6" Background="#33E5B341" BorderBrush="{StaticResource WarnBrush}" BorderThickness="1"
+                    Visibility="{Binding ShowDetection, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding DetectionText}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding DetectionDetail}" Style="{StaticResource Muted}" TextWrapping="Wrap" FontSize="10" Margin="0,2,0,0" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <Button Content="Apply" Style="{StaticResource TinyButton}" Command="{Binding ApplyDetectionCommand}"
+                                ToolTip="Writes opcodes.json and reloads. Needs the overlay unlocked (not click-through)." />
+                        <Button Content="Not now" Style="{StaticResource TinyButton}" Margin="6,0,0,0" Command="{Binding DismissDetectionCommand}" />
+                    </StackPanel>
+                    <TextBlock Text="Click-through is on: apply it from the collection window." Style="{StaticResource Muted}" FontSize="10" Margin="0,4,0,0"
+                               Visibility="{Binding Model.ClickThrough, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+            </Border>
+            <ItemsControl ItemsSource="{Binding Feed}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <DockPanel Margin="0,1">
@@ -73,6 +88,7 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            </StackPanel>
 
             <Separator Grid.Row="2" Margin="0,8" Background="{StaticResource BorderBrushDim}" />
 

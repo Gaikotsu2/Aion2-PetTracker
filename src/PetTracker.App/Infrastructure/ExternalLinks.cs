@@ -5,7 +5,7 @@ using PetTracker.Core;
 namespace PetTracker.App.Infrastructure;
 
 /// <summary>
-/// Opens exactly three kinds of target with the shell: our own data folder, https://npcap.com and a TH.GL pet page
+/// Opens exactly four kinds of target with the shell: our own data folder, our own opcodes.json, https://npcap.com and a TH.GL pet page
 /// (https://aion2.th.gl/db/pets/pet_NNNN, see <see cref="LinkPolicy"/>). Anything else is refused, so this can never be
 /// turned into a way to start or reach another program. The app itself makes no network calls; the browser does.
 /// </summary>
@@ -18,19 +18,30 @@ internal static class ExternalLinks
 
     public static string PetUrl(int petId) => LinkPolicy.PetUrl(petId);
 
-    public static bool Open(string target, string dataFolder)
+    public static bool Open(string target, string dataFolder, string? opcodesFile = null)
     {
         var isUrl = LinkPolicy.IsAllowedUrl(target);
         var isFolder = false;
+        var isOpcodes = false;
         if (!isUrl)
         {
-            try { isFolder = string.Equals(Path.GetFullPath(target), Path.GetFullPath(dataFolder), StringComparison.OrdinalIgnoreCase); }
+            try
+            {
+                var full = Path.GetFullPath(target);
+                isFolder = string.Equals(full, Path.GetFullPath(dataFolder), StringComparison.OrdinalIgnoreCase);
+                isOpcodes = opcodesFile is not null && string.Equals(full, Path.GetFullPath(opcodesFile), StringComparison.OrdinalIgnoreCase);
+            }
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException) { }
         }
-        if (!isUrl && !isFolder)
+        if (!isUrl && !isFolder && !isOpcodes)
             return false;
         if (isFolder)
             Directory.CreateDirectory(target);
+        if (isOpcodes && !File.Exists(target))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(target))!);
+            File.WriteAllText(target, "{}" + Environment.NewLine);
+        }
         return ShellExecuteW(IntPtr.Zero, "open", target, null, null, 1).ToInt64() > 32;
     }
 }

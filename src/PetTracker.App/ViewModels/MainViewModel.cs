@@ -1,8 +1,13 @@
+using System.IO;
 using System.ComponentModel;
 using System.Windows.Data;
 using System.Windows.Input;
 using PetTracker.App.Infrastructure;
+using System.Collections.ObjectModel;
+using PetTracker.Core;
 using PetTracker.Core.Domain;
+using PetTracker.Core.Protocol;
+using PetTracker.Core.Startup;
 
 namespace PetTracker.App.ViewModels;
 
@@ -13,10 +18,16 @@ public sealed class MainViewModel : ObservableObject
     private PetRowViewModel? _selected;
     private string _hotkeyMessage = "";
     private string _toggleOverlayText, _toggleClickThroughText;
+    private readonly AutoStart _autoStart;
+    private readonly string? _exePath;
+    private string _opcodeMessage = "", _autoStartMessage = "";
 
-    public MainViewModel(TrackerModel model, OverlayViewModel overlay, Func<string?, string?, string?> applyHotkeys, Action restartCapture)
+    public MainViewModel(TrackerModel model, OverlayViewModel overlay, Func<string?, string?, string?> applyHotkeys, Action restartCapture,
+        AutoStart autoStart, string? exePath)
     {
         Model = model;
+        _autoStart = autoStart;
+        _exePath = exePath;
         Overlay = overlay;
         _toggleOverlayText = model.Settings.Hotkeys.ToggleOverlay;
         _toggleClickThroughText = model.Settings.Hotkeys.ToggleClickThrough;
@@ -35,6 +46,17 @@ public sealed class MainViewModel : ObservableObject
         ApplyAdapterCommand = new RelayCommand(() => { model.SaveSettings(); restartCapture(); });
         OpenDataFolderCommand = new RelayCommand(() => ExternalLinks.Open(model.Paths.Folder, model.Paths.Folder));
         OpenNpcapCommand = new RelayCommand(() => ExternalLinks.Open(ExternalLinks.NpcapUrl, model.Paths.Folder));
+        OpenOpcodesFileCommand = new RelayCommand(() => ExternalLinks.Open(model.Paths.Opcodes, model.Paths.Folder, model.Paths.Opcodes));
+        SaveOpcodesCommand = new RelayCommand(SaveOpcodes);
+        ResetOpcodesCommand = new RelayCommand(ResetOpcodes);
+        ReloadOpcodesCommand = new RelayCommand(() =>
+        {
+            var error = model.ReloadOpcodes("Opcodes re-read from file");
+            OpcodeMessage = error is null ? "Reloaded opcodes.json." : "opcodes.json is not valid and was ignored: " + error;
+        });
+        model.StatusChanged += () => Raise(nameof(StatusTooltip));
+        model.OpcodesChanged += LoadOpcodeRows;
+        LoadOpcodeRows();
         ClearFiltersCommand = new RelayCommand(ClearFilters);
         ResetSessionCommand = new RelayCommand(() => { model.Stats.Reset(DateTime.UtcNow); foreach (var r in model.Rows) r.RefreshSession(); View.Refresh(); model.NotifySession(); });
     }
@@ -57,7 +79,101 @@ public sealed class MainViewModel : ObservableObject
     public ICommand ResetSessionCommand { get; }
 
     public string StatusText => Model.Status.Text;
+    public string StatusTooltip => Model.StatusTooltip;
     public string DataFolder => Model.Paths.Folder;
+    public string VersionText => $"Aion 2 Pet Tracker {AppInfo.Version}";
+
+    // --- opcode editor --------------------------------------------------------------------------------------------
+
+    public ObservableCollection<OpcodeRowViewModel> OpcodeRows { get; } = [];
+    public ICommand OpenOpcodesFileCommand { get; }
+    public ICommand SaveOpcodesCommand { get; }
+    public ICommand ResetOpcodesCommand { get; }
+    public ICommand ReloadOpcodesCommand { get; }
+    public string OpcodeMessage { get => _opcodeMessage; set => Set(ref _opcodeMessage, value); }
+
+    private void LoadOpcodeRows()
+    {
+        var defaults = Model.DefaultOpcodes;
+        var overrides = Model.OpcodeOverridesOnDisk;
+        var names = defaults.Keys.Union(overrides.Keys, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n == MessageNames.Heartbeat ? 1 : 0).ThenBy(n => n, StringComparer.OrdinalIgnoreCase);
+        OpcodeRows.Clear();
+        foreach (var name in names)
+            OpcodeRows.Add(new OpcodeRowViewModel(name, defaults.GetValueOrDefault(name) ?? [], overrides.GetValueOrDefault(name)));
+    }
+
+    private void SaveOpcodes()
+    {
+        var ok = true;
+        foreach (var row in OpcodeRows)
+            ok &= row.Validate();
+        if (!ok)
+        {
+            OpcodeMessage = "Fix the marked rows first (hex opcodes such as 0990, comma separated).";
+            return;
+        }
+
+        var overrides = new Dictionary<string, IReadOnlyList<ushort>>(StringComparer.OrdinalIgnoreCase);
+        var defaults = Model.DefaultOpcodes;
+        foreach (var row in OpcodeRows)
+        {
+            if (row.ParsedOverride() is not { } list)
+                continue;
+            if (defaults.TryGetValue(row.Name, out var d) && d.Order().SequenceEqual(list.Order()))
+                continue; // same as the default: no override needed
+            overrides[row.Name] = list;
+        }
+
+        // One opcode must not carry two different messages: the parser would pick whichever it meets first.
+        var effective = defaults.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, list) in overrides)
+            effective[name] = list;
+        foreach (var group in effective.Where(kv => kv.Key != MessageNames.Heartbeat)
+                     .SelectMany(kv => kv.Value.Select(op => (Name: kv.Key, Op: op))).GroupBy(x => x.Op).Where(g => g.Select(x => x.Name).Distinct().Count() > 1))
+        {
+            var names = string.Join(" and ", group.Select(x => x.Name).Distinct());
+            foreach (var row in OpcodeRows.Where(r => group.Any(x => string.Equals(x.Name, r.Name, StringComparison.OrdinalIgnoreCase))))
+                row.SetError($"{OpcodeOverrides.Format(group.Key)} is used by both {names}.");
+            OpcodeMessage = $"{OpcodeOverrides.Format(group.Key)} cannot carry both {names}.";
+            return;
+        }
+
+        Model.SaveOpcodeOverrides(overrides);
+        OpcodeMessage = overrides.Count == 0 ? "Saved: all defaults. Opcodes reloaded." : $"Saved {overrides.Count} override(s). Opcodes reloaded; no restart needed.";
+    }
+
+    private void ResetOpcodes()
+    {
+        Model.SaveOpcodeOverrides(new Dictionary<string, IReadOnlyList<ushort>>());
+        OpcodeMessage = "Back to the default opcodes (opcodes.json removed).";
+    }
+
+    // --- start with Windows -----------------------------------------------------------------------------------------
+
+    /// <summary>Adds or removes HKCU\...\Run\Aion2PetTracker. Only available for the real PetTracker.App.exe.</summary>
+    public bool StartWithWindows
+    {
+        get => _autoStart.IsEnabled;
+        set
+        {
+            if (value == _autoStart.IsEnabled)
+                return;
+            try
+            {
+                _autoStart.SetEnabled(value, _exePath);
+                AutoStartMessage = value ? $"Starts with Windows, minimized: {AutoStart.BuildCommand(_exePath!)}" : "Will not start with Windows.";
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or System.Security.SecurityException or IOException)
+            {
+                AutoStartMessage = ex.Message;
+            }
+            Raise();
+        }
+    }
+
+    public bool CanStartWithWindows => AutoStart.CanRegister(_exePath);
+    public string AutoStartMessage { get => _autoStartMessage; private set => Set(ref _autoStartMessage, value); }
 
     public string SummaryText
     {

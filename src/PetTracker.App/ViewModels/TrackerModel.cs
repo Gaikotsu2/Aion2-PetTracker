@@ -10,6 +10,7 @@ using PetTracker.Core.Messages;
 using PetTracker.Core.Persistence;
 using PetTracker.Core.Protocol;
 
+
 namespace PetTracker.App.ViewModels;
 
 /// <summary>One line of the live feed.</summary>
@@ -75,6 +76,15 @@ public sealed class TrackerModel : ObservableObject, IDisposable
     private DateTime _lastDesyncAt = DateTime.MinValue;
     private bool _petEventSeen;
     private bool _npcapMissing;
+    private OpcodeRegistry _registry;
+    private readonly OpcodeRegistry _defaultRegistry;
+    private readonly FrameBuffer _buffer = new();
+    private readonly FramingDriftMonitor _drift = new();
+    private int _lastFlowId = -1;
+    private DateTime _lastDetectAt = DateTime.MinValue;
+    private bool _detecting;
+    private string? _dismissedDetection;
+    private OpcodeDetection? _detection;
     private TrackerStatus _status = new(TrackerStatusKind.WaitingForGame, "Waiting for game");
 
     public TrackerModel(AppPaths paths)
@@ -85,7 +95,8 @@ public sealed class TrackerModel : ObservableObject, IDisposable
         _collectionStore = new CollectionStore(paths.Collection);
         _log = new EventLog(paths.Events);
         Settings = _settingsStore.Load();
-        Registry = OpcodeRegistry.LoadDefault();
+        _defaultRegistry = OpcodeRegistry.LoadDefault();
+        _registry = OpcodeOverrides.Merge(_defaultRegistry, OpcodeOverrides.Load(paths.Opcodes, out var opcodeError));
         Catalog = PetCatalog.LoadDefault(paths.Folder);
         NameList = PetNameList.LoadDefault();
         Collection = new PetCollection();
@@ -96,11 +107,19 @@ public sealed class TrackerModel : ObservableObject, IDisposable
         Catalog.Changed += OnCatalogChanged;
         SyncRows();
         UpdateStatus();
+
+        // Proves in the log that data/ was found next to the exe (also in single-file mode).
+        Note("Startup", $"Aion2PetTracker {AppInfo.Version}; base {AppContext.BaseDirectory}; data folder {paths.Folder}; " +
+                        $"{Catalog.KnownIds.Count()} pets in the catalog; opcodes {Describe(_registry)}");
+        if (opcodeError is not null)
+            Note("OpcodesIgnored", $"{paths.Opcodes} is not valid and was ignored: {opcodeError}");
     }
 
     public AppPaths Paths { get; }
     public AppSettings Settings { get; }
-    public OpcodeRegistry Registry { get; }
+
+    /// <summary>The effective opcode map (defaults plus the user's opcodes.json). Replaced when the override changes.</summary>
+    public OpcodeRegistry Registry => Volatile.Read(ref _registry);
     public PetCatalog Catalog { get; }
     public PetNameList NameList { get; }
     public PetCollection Collection { get; }
@@ -117,6 +136,7 @@ public sealed class TrackerModel : ObservableObject, IDisposable
                 return;
             _status = value;
             Raise();
+            Raise(nameof(StatusTooltip));
             StatusChanged?.Invoke();
         }
     }
@@ -260,14 +280,159 @@ public sealed class TrackerModel : ObservableObject, IDisposable
     public void RestartCapture()
     {
         _firstHeartbeat = null;
+        _buffer.Clear();
+        _lastFlowId = -1;
+        _drift.Reset();
         StartCapture();
     }
+
+    // --- opcodes: live reload, detection fallback, editor --------------------------------------------------------
+
+    public event Action? OpcodesChanged;
+    public event Action? DetectionChanged;
+
+    public IReadOnlyDictionary<string, IReadOnlyList<ushort>> DefaultOpcodes => _defaultRegistry.ToDictionary();
+
+    /// <summary>What opcodes.json overrides right now (read from disk), or empty.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<ushort>> OpcodeOverridesOnDisk => OpcodeOverrides.Load(Paths.Opcodes, out _);
+
+    /// <summary>Writes the override file (an empty map deletes it) and switches to the new map without a restart.</summary>
+    public void SaveOpcodeOverrides(IReadOnlyDictionary<string, IReadOnlyList<ushort>> overrides)
+    {
+        OpcodeOverrides.Save(Paths.Opcodes, overrides);
+        ReloadOpcodes("Opcodes saved");
+    }
+
+    /// <summary>Re-reads opcodes.json and swaps the registry live; the next frame already uses it.</summary>
+    public string? ReloadOpcodes(string reason = "Opcodes reloaded")
+    {
+        var overrides = OpcodeOverrides.Load(Paths.Opcodes, out var error);
+        Volatile.Write(ref _registry, OpcodeOverrides.Merge(_defaultRegistry, overrides));
+        Note("OpcodesReloaded", $"{reason}: {Describe(_registry)}" + (error is null ? "" : $" (file ignored: {error})"));
+        OpcodesChanged?.Invoke();
+        UpdateStatus();
+        return error;
+    }
+
+    /// <summary>The shape-based proposal waiting for a click on Apply, or null.</summary>
+    public OpcodeDetection? PendingDetection
+    {
+        get => _detection;
+        private set
+        {
+            _detection = value;
+            Raise();
+            DetectionChanged?.Invoke();
+        }
+    }
+
+    public string DetectionSummary => _detection is null ? "" : SummaryOf(_detection);
+
+    private static string SummaryOf(OpcodeDetection detection) =>
+        string.Join(", ", detection.Mapping().Where(kv => kv.Key != MessageNames.Heartbeat)
+            .Select(kv => $"{kv.Key} {OpcodeOverrides.FormatList(kv.Value)}"));
+
+    public void DismissDetection()
+    {
+        if (_detection is null)
+            return;
+        _dismissedDetection = DetectionSummary;
+        Note("OpcodeDetectionDismissed", _dismissedDetection);
+        PendingDetection = null;
+    }
+
+    /// <summary>Called on the UI thread every tick: when the status is "Unknown version", looks at the buffered frames by shape.</summary>
+    private void MaybeDetect(DateTime now)
+    {
+        if (_detecting || _detection is not null || Status.Kind != TrackerStatusKind.UnknownVersion
+            || now - _lastDetectAt < TimeSpan.FromSeconds(30))
+            return;
+        var frames = _buffer.Snapshot();
+        if (frames.Count == 0)
+            return;
+        _detecting = true;
+        _lastDetectAt = now;
+        var catalog = Catalog;
+        Task.Run(() =>
+        {
+            OpcodeDetection? found = null;
+            try { found = new PetOpcodeDetector(catalog).Detect(frames); }
+            catch (Exception ex) when (ex is InvalidDataException or ArgumentException or IndexOutOfRangeException) { }
+            _ui.BeginInvoke(() =>
+            {
+                _detecting = false;
+                if (_disposed || found is null)
+                    return;
+                Note("OpcodeDetection", $"examined {found.FramesExamined} buffered frames; snapshot confidence {found.SnapshotConfidence:0.00}; " +
+                                        string.Join("; ", found.Candidates.Select(c => $"{c.LogicalName} {c.OpcodeHex} {c.Confidence:0.00}")));
+                if (!found.HasConfidentSnapshot)
+                    return;
+                if (SummaryOf(found) != _dismissedDetection)
+                    PendingDetection = found;
+            });
+        });
+    }
+
+    /// <summary>
+    /// The Apply click: merges the proposal into opcodes.json, reloads the registry and re-processes the buffered frames so the
+    /// snapshot loads now. Frames the old map already handled are not applied twice, except that everything from the snapshot on is
+    /// replayed when the snapshot itself was not understood before (the snapshot replaces the state, so what follows belongs on top).
+    /// </summary>
+    public void ApplyDetection()
+    {
+        if (_detection is not { } detection)
+            return;
+        var plan = OpcodeRepair.Plan(detection, _defaultRegistry, OpcodeOverridesOnDisk, _buffer.Snapshot());
+        SaveOpcodeOverrides(plan.Overrides);
+        Note("OpcodeDetectionApplied", $"user clicked Apply: {DetectionSummary}");
+
+        var replayed = 0;
+        foreach (var f in plan.FramesToReplay)
+        {
+            var messages = PetMessageParser.Extract(Registry, [f.Frame]).ToList();
+            if (messages.Count == 0)
+                continue;
+            replayed++;
+            ApplyMessages(messages, new DateTime(f.Ticks, DateTimeKind.Utc));
+        }
+        Note("OpcodeDetectionReplay", $"re-processed {replayed} buffered pet frame(s)");
+        PendingDetection = null;
+        _dismissedDetection = null;
+    }
+
+    private static string Describe(OpcodeRegistry registry) => string.Join(", ", registry.MessageNamesKnown.Order()
+        .Select(n => $"{n}={OpcodeOverrides.FormatList(registry.OpcodesFor(n))}"));
+
+    /// <summary>Appends a system line to events.jsonl.</summary>
+    public void Note(string kind, string message)
+    {
+        try { _log.Append(new SystemNote(DateTime.UtcNow, kind, message)); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    // --- framing drift --------------------------------------------------------------------------------------------
+
+    /// <summary>Extra status-tooltip line when desyncs keep coming (the frame format may have changed), else null.</summary>
+    public string? FramingHint => _drift.Suspected ? FramingDriftMonitor.Hint : null;
+
+    public string StatusTooltip => _drift.Suspected
+        ? $"{Status.Text}\n{FramingDriftMonitor.Hint}"
+        : Status.Text;
 
     private void OnFrames(DecodedFrames decoded)
     {
         // Pipeline thread: parse only, apply on the UI thread.
+        var registry = Registry;
+        if (decoded.FlowId != _lastFlowId)
+        {
+            _lastFlowId = decoded.FlowId; // a new connection: only its own traffic is worth keeping
+            _buffer.Clear();
+        }
+        _buffer.Add(decoded.Ticks, decoded.Frames, f => registry.Is(MessageNames.Heartbeat, f.Opcode));
+
         var errors = new List<string>();
-        var messages = PetMessageParser.Extract(Registry, decoded.Frames, errors.Add).ToList();
+        var messages = PetMessageParser.Extract(registry, decoded.Frames, errors.Add).ToList();
         if (messages.Count == 0 && errors.Count == 0)
             return;
         var when = new DateTime(decoded.Ticks, DateTimeKind.Utc);
@@ -339,6 +504,7 @@ public sealed class TrackerModel : ObservableObject, IDisposable
         var now = DateTime.UtcNow;
         Publish(Collection.Tick(now));
         UpdateStatus();
+        MaybeDetect(now);
         SessionChanged?.Invoke();
         if (_dirty && now - _lastSave > TimeSpan.FromSeconds(5))
             Save();
@@ -357,6 +523,13 @@ public sealed class TrackerModel : ObservableObject, IDisposable
             if (s.Desyncs > _lastDesyncs)
                 _lastDesyncAt = now;
             _lastDesyncs = s.Desyncs;
+            if (_drift.Observe(s.Desyncs, now))
+            {
+                Note("FramingDrift", $"{_drift.Threshold}+ desyncs within {_drift.Window.TotalSeconds:0} s: {FramingDriftMonitor.Hint}");
+                Raise(nameof(StatusTooltip));
+                Raise(nameof(FramingHint));
+                StatusChanged?.Invoke();
+            }
         }
 
         Status = TrackerStatus.Evaluate(new TrackerStatusInput(
