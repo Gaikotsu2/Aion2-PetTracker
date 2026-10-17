@@ -54,3 +54,10 @@ freshly built tracker (error `0x800711C7`). You cannot allow-list a single file.
 **After a game update.** Opcodes can be renumbered by a patch. The tracker notices ("Unknown version"), offers detected new
 codes with an Apply button, and has an opcode editor in Settings. The whole routine, including the `pt-research
 detect-opcodes` and `verify` commands, is in [docs/PATCH-DAY.md](docs/PATCH-DAY.md).
+
+## License
+
+The source code is released under the [MIT License](LICENSE), © 2026 Gaikotsu2.
+
+The pet catalog in `data/` is compiled from [TH.GL](https://aion2.th.gl) and community guides (see Data credits); AION 2
+names and game data belong to NCSOFT. This is an unofficial fan tool, not affiliated with or endorsed by NCSOFT.
