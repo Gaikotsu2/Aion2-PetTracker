@@ -1,0 +1,28 @@
+{
+  // Example expectation file for: pt-research verify <captures...> --expect <this file>
+  // Copy it to captures/ (gitignored), edit it to match what YOUR game showed, or generate a first version from the
+  // current replay with:  pt-research verify r2.a2cap r3.a2cap r4.a2cap --write-expect captures/expect.mine.json
+  // (then compare it with the game before trusting it).
+
+  // Capture files in replay order. The xUnit test uses this list; the CLI takes the captures as arguments.
+  "captures": [ "login.a2cap", "soul-drop.a2cap", "level-up.a2cap" ],
+
+  // State after the first k captures have been replayed ("after": 1 = the login alone).
+  "checkpoints": [
+    { "after": 1, "gameCount": { "registered": 161, "total": 200 } }
+  ],
+
+  // State after all captures. Only what is listed is checked.
+  "final": {
+    // "Collection Status" as the game shows it (Special pets are not counted), and the Special pets on their own.
+    "gameCount": { "registered": 162, "total": 200 },
+    "special": { "registered": 1, "total": 9 },
+
+    // Pet id -> level (0 = unregistered, 1..3) and the progress number. MAX level 3 has progress 0.
+    "pets": {
+      "1195": { "level": 1, "progress": 1 },   // registered during the recording, shows 1/25
+      "1207": { "level": 3, "progress": 0 },   // leveled up to MAX during the recording
+      "1091": { "level": 0, "progress": 4 }    // still unregistered, 4/5 souls
+    }
+  }
+}

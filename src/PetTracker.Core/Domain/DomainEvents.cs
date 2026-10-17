@@ -15,3 +15,6 @@ public sealed record SnapshotLoaded(DateTime Timestamp, int Count, int TotalKnow
 
 /// <summary>Something did not add up. When <see cref="NeedsResync"/> is set the pet stays flagged until the next snapshot.</summary>
 public sealed record Inconsistency(DateTime Timestamp, int? PetId, string Message, bool NeedsResync) : DomainEvent(Timestamp);
+
+/// <summary>A note for events.jsonl that is not about a pet (opcode detection, applied overrides, framing trouble, startup).</summary>
+public sealed record SystemNote(DateTime Timestamp, string Kind, string Message) : DomainEvent(Timestamp);

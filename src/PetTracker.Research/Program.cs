@@ -17,6 +17,8 @@ root.Subcommands.Add(SearchCommand.Build(common));
 root.Subcommands.Add(DiffCommand.Build(common));
 root.Subcommands.Add(LiveCommand.Build(common));
 root.Subcommands.Add(ReplayCommand.Build(common));
+root.Subcommands.Add(DetectOpcodesCommand.Build(common));
+root.Subcommands.Add(VerifyCommand.Build(common));
 root.Subcommands.Add(AdaptersCommand.BuildAdapters());
 root.Subcommands.Add(AdaptersCommand.BuildConnections());
 

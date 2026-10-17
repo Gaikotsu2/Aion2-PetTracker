@@ -34,6 +34,10 @@ public sealed class OpcodeRegistry
 
     public IEnumerable<string> MessageNamesKnown => _byName.Keys;
 
+    /// <summary>A copy of the whole map (logical name to opcodes).</summary>
+    public Dictionary<string, IReadOnlyList<ushort>> ToDictionary() =>
+        _byName.ToDictionary(kv => kv.Key, kv => (IReadOnlyList<ushort>)kv.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+
     public IReadOnlyList<ushort> OpcodesFor(string name) => _byName.TryGetValue(name, out var o) ? o : [];
 
     public IReadOnlyList<string> NamesFor(ushort opcode) => _byOpcode.TryGetValue(opcode, out var n) ? n : [];

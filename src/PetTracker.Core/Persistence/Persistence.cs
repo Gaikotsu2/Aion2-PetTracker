@@ -11,6 +11,8 @@ public sealed record AppPaths(string Folder)
     public string Events => Path.Combine(Folder, "events.jsonl");
     public string Settings => Path.Combine(Folder, "settings.json");
     public string PetNames => Path.Combine(Folder, "pet-names.json");
+    /// <summary>User opcode override, merged over data/opcodes.default.json.</summary>
+    public string Opcodes => Path.Combine(Folder, "opcodes.json");
 
     public static string DefaultFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Aion2PetTracker");
 
@@ -102,6 +104,7 @@ public sealed class EventLog(string path)
         ProgressAdjusted p => new Entry(p.Timestamp, nameof(ProgressAdjusted), p.PetId, Progress: p.NewProgress),
         SnapshotLoaded s => new Entry(s.Timestamp, nameof(SnapshotLoaded), Count: s.Count, Total: s.TotalKnown),
         Inconsistency i => new Entry(i.Timestamp, nameof(Inconsistency), i.PetId, Message: i.Message, NeedsResync: i.NeedsResync),
+        SystemNote n => new Entry(n.Timestamp, n.Kind, Message: n.Message),
         _ => new Entry(e.Timestamp, e.GetType().Name),
     };
 

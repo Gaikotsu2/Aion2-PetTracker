@@ -24,8 +24,15 @@ public sealed class CommonOptions
         Recursive = true,
     };
 
+    public Option<bool> UserOverrides { get; } = new("--user-overrides")
+    {
+        Description = "Also merge the user's %AppData%\\Aion2PetTracker\\opcodes.json over the default opcode map (what the app uses). Off by default so results do not depend on that file.",
+        Recursive = true,
+    };
+
     public void AddTo(RootCommand root)
     {
+        root.Options.Add(UserOverrides);
         root.Options.Add(LengthMode);
         root.Options.Add(AutoDetect);
         root.Options.Add(Opcodes);
@@ -42,6 +49,11 @@ public sealed class CommonOptions
 
     public bool WantsAutoDetect(ParseResult result) => result.GetValue(AutoDetect);
 
-    public OpcodeRegistry Registry(ParseResult result) =>
-        result.GetValue(Opcodes) is { } path ? OpcodeRegistry.Load(path) : OpcodeRegistry.LoadDefault();
+    public OpcodeRegistry Registry(ParseResult result)
+    {
+        var baseRegistry = result.GetValue(Opcodes) is { } path ? OpcodeRegistry.Load(path) : OpcodeRegistry.LoadDefault();
+        if (!result.GetValue(UserOverrides))
+            return baseRegistry;
+        return OpcodeOverrides.Merge(baseRegistry, OpcodeOverrides.Load(Core.Persistence.AppPaths.For().Opcodes, out _));
+    }
 }
