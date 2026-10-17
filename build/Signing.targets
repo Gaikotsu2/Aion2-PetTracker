@@ -1,0 +1,90 @@
+<Project>
+  <!--
+    Opt-in code signing with Microsoft Artifact Signing (formerly Trusted Signing). Imported from Directory.Build.props.
+
+    Active only when  -p:SignBuild=true  is passed, or signing/metadata.json exists at the repo root
+    (-p:SignBuild=false switches it off again). Otherwise every target below is skipped and the build is unchanged.
+
+    Only our own assemblies are signed (PetTracker.*.dll/.exe, pt-research.dll/.exe, the test assembly), never third-party
+    NuGet DLLs. All files of one project go to one signtool call (scripts/sign.ps1), and files that already have a valid
+    signature are skipped.
+
+    Overridable properties (all optional):
+      SignToolPath              full path of signtool.exe (10.0.22621 or newer); default: auto-discovered
+      ArtifactSigningDlibPath   full path of Azure.CodeSigning.Dlib.dll (or a folder containing it); default: auto-discovered
+      SigningMetadataFile       default: <repo>/signing/metadata.json
+      SigningTimestampUrl       default: http://timestamp.acs.microsoft.com
+
+    SignBuild=true (explicit) fails the build with a clear message when the tools or metadata are missing.
+    With only metadata.json present (implicit), missing tools just skip signing with a note.
+  -->
+
+  <PropertyGroup>
+    <SigningRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</SigningRoot>
+    <SigningMetadataFile Condition="'$(SigningMetadataFile)' == ''">$(SigningRoot)signing\metadata.json</SigningMetadataFile>
+    <SigningTimestampUrl Condition="'$(SigningTimestampUrl)' == ''">http://timestamp.acs.microsoft.com</SigningTimestampUrl>
+    <SigningScript Condition="'$(SigningScript)' == ''">$(SigningRoot)scripts\sign.ps1</SigningScript>
+    <SigningPowerShell Condition="'$(SigningPowerShell)' == ''">$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe</SigningPowerShell>
+  </PropertyGroup>
+
+  <!-- Sets the command line shared by the signing targets. -->
+  <Target Name="_SigningPrepare">
+    <PropertyGroup>
+      <_SigningOwn Condition="$(AssemblyName.StartsWith('PetTracker.')) Or '$(AssemblyName)' == 'pt-research'">true</_SigningOwn>
+      <_SigningArgs>-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$(SigningScript)" -MSBuild -MetadataFile "$(SigningMetadataFile)" -TimestampUrl "$(SigningTimestampUrl)"</_SigningArgs>
+      <_SigningArgs Condition="'$(SignToolPath)' != ''">$(_SigningArgs) -SignToolPath "$(SignToolPath)"</_SigningArgs>
+      <_SigningArgs Condition="'$(ArtifactSigningDlibPath)' != ''">$(_SigningArgs) -DlibPath "$(ArtifactSigningDlibPath)"</_SigningArgs>
+      <_SigningArgs Condition="'$(SignBuild)' != 'true'">$(_SigningArgs) -Optional</_SigningArgs>
+    </PropertyGroup>
+  </Target>
+
+  <!--
+    Sign the intermediate assemblies before they are copied to the output folder. The copy in bin/ is then already signed,
+    and an incremental build does not overwrite it with an unsigned file and force a new signature every time.
+  -->
+  <Target Name="SignIntermediateOutputs" BeforeTargets="CopyFilesToOutputDirectory" DependsOnTargets="_SigningPrepare"
+          Condition="'$(SignBuild)' == 'true' Or ('$(SignBuild)' != 'false' And Exists('$(SigningMetadataFile)'))">
+    <ItemGroup Condition="'$(_SigningOwn)' == 'true' And '$(_TargetAssemblyProjectName)' == ''">
+      <_SignIntermediate Include="@(IntermediateAssembly->'%(FullPath)')" />
+      <_SignIntermediate Include="$(AppHostIntermediatePath)" Condition="'$(UseAppHost)' == 'true' And Exists('$(AppHostIntermediatePath)')" />
+    </ItemGroup>
+    <Exec Condition="'@(_SignIntermediate)' != ''" IgnoreExitCode="true" StandardOutputImportance="high" StandardErrorImportance="high"
+          Command="&quot;$(SigningPowerShell)&quot; $(_SigningArgs) @(_SignIntermediate->'&quot;%(FullPath)&quot;', ' ')">
+      <Output TaskParameter="ExitCode" PropertyName="_SignExitIntermediate" />
+    </Exec>
+    <Error Condition="'$(_SignExitIntermediate)' != '' And '$(_SignExitIntermediate)' != '0'"
+           Text="Code signing failed (exit code $(_SignExitIntermediate)); see the SIGN messages above and docs/SIGNING.md. Build with -p:SignBuild=false to skip signing." />
+  </Target>
+
+  <!-- Safety net after Build: anything of ours in the output folder that is still unsigned gets signed (already-valid files are skipped). -->
+  <Target Name="SignBuildOutputs" AfterTargets="Build" DependsOnTargets="_SigningPrepare"
+          Condition="'$(SignBuild)' == 'true' Or ('$(SignBuild)' != 'false' And Exists('$(SigningMetadataFile)'))">
+    <ItemGroup Condition="'$(_SigningOwn)' == 'true' And '$(_TargetAssemblyProjectName)' == ''">
+      <_SignBuilt Include="$(OutDir)PetTracker.*.dll;$(OutDir)PetTracker.*.exe" />
+      <_SignBuilt Include="$(OutDir)pt-research.dll" Condition="Exists('$(OutDir)pt-research.dll')" />
+      <_SignBuilt Include="$(OutDir)pt-research.exe" Condition="Exists('$(OutDir)pt-research.exe')" />
+    </ItemGroup>
+    <Exec Condition="'@(_SignBuilt)' != ''" IgnoreExitCode="true" StandardOutputImportance="high" StandardErrorImportance="high"
+          Command="&quot;$(SigningPowerShell)&quot; $(_SigningArgs) @(_SignBuilt->'&quot;%(FullPath)&quot;', ' ')">
+      <Output TaskParameter="ExitCode" PropertyName="_SignExitBuilt" />
+    </Exec>
+    <Error Condition="'$(_SignExitBuilt)' != '' And '$(_SignExitBuilt)' != '0'"
+           Text="Code signing failed (exit code $(_SignExitBuilt)); see the SIGN messages above and docs/SIGNING.md. Build with -p:SignBuild=false to skip signing." />
+  </Target>
+
+  <!-- Same for the published files (dotnet publish). Runtime and NuGet files in the publish folder are not touched. -->
+  <Target Name="SignPublishedOutputs" AfterTargets="Publish" DependsOnTargets="_SigningPrepare"
+          Condition="'$(SignBuild)' == 'true' Or ('$(SignBuild)' != 'false' And Exists('$(SigningMetadataFile)'))">
+    <ItemGroup Condition="'$(_SigningOwn)' == 'true' And '$(_TargetAssemblyProjectName)' == ''">
+      <_SignPublished Include="$(PublishDir)PetTracker.*.dll;$(PublishDir)PetTracker.*.exe" />
+      <_SignPublished Include="$(PublishDir)pt-research.dll" Condition="Exists('$(PublishDir)pt-research.dll')" />
+      <_SignPublished Include="$(PublishDir)pt-research.exe" Condition="Exists('$(PublishDir)pt-research.exe')" />
+    </ItemGroup>
+    <Exec Condition="'@(_SignPublished)' != ''" IgnoreExitCode="true" StandardOutputImportance="high" StandardErrorImportance="high"
+          Command="&quot;$(SigningPowerShell)&quot; $(_SigningArgs) @(_SignPublished->'&quot;%(FullPath)&quot;', ' ')">
+      <Output TaskParameter="ExitCode" PropertyName="_SignExitPublished" />
+    </Exec>
+    <Error Condition="'$(_SignExitPublished)' != '' And '$(_SignExitPublished)' != '0'"
+           Text="Code signing of the published files failed (exit code $(_SignExitPublished)); see the SIGN messages above and docs/SIGNING.md." />
+  </Target>
+</Project>

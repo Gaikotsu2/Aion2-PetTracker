@@ -1,0 +1,108 @@
+<Window x:Class="PetTracker.App.Views.OverlayWindow" Icon="/Assets/app.ico"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Pet Tracker Overlay"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        ResizeMode="CanResizeWithGrip" MinWidth="230" MinHeight="120"
+        Opacity="{Binding Model.Opacity}"
+        UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <Style x:Key="NameButton" TargetType="Button" BasedOn="{StaticResource TinyButton}">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding ShowNameButton}" Value="True" />
+                        <Condition Binding="{Binding DataContext.Model.Unlocked, RelativeSource={RelativeSource AncestorType=Window}}" Value="True" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Visibility" Value="Visible" />
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="8" BorderBrush="{StaticResource BorderBrushDim}" BorderThickness="1">
+        <Border.LayoutTransform>
+            <ScaleTransform ScaleX="{Binding Model.Scale}" ScaleY="{Binding Model.Scale}" />
+        </Border.LayoutTransform>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- status pill + session stats -->
+            <DockPanel Grid.Row="0" LastChildFill="False">
+                <Border DockPanel.Dock="Left" Background="{Binding StatusBrush}" CornerRadius="9" Padding="9,2">
+                    <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" Foreground="White" />
+                </Border>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding SessionText}" VerticalAlignment="Center" Style="{StaticResource Muted}" />
+            </DockPanel>
+
+            <!-- live feed -->
+            <ItemsControl Grid.Row="1" Margin="0,8,0,0" ItemsSource="{Binding Feed}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel Margin="0,1">
+                            <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Style="{StaticResource Muted}" Margin="0,0,6,0" FontSize="10" VerticalAlignment="Center" />
+                            <Button DockPanel.Dock="Right" Content="name" Style="{StaticResource NameButton}" Margin="6,0,0,0"
+                                    Command="{Binding NameCommand}" ToolTip="Name this pet in the collection window" />
+                            <TextBlock DockPanel.Dock="Right" Text="SP" FontSize="9" Margin="6,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource SpecialBrush}"
+                                       ToolTip="{Binding SpecialTooltip}" Opacity="0.8"
+                                       Visibility="{Binding IsSpecial, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsHighlight}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource GoodBrush}" />
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource WarnBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DockPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Separator Grid.Row="2" Margin="0,8" Background="{StaticResource BorderBrushDim}" />
+
+            <!-- pinned pets -->
+            <ItemsControl Grid.Row="3" ItemsSource="{Binding Pinned}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0,0,0,6">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding ProgressText}" FontWeight="SemiBold" />
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding LevelText}" Style="{StaticResource Muted}" Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                            </DockPanel>
+                            <ProgressBar Style="{StaticResource PetBar}" Value="{Binding ProgressFraction, Mode=OneWay}" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Grid.Row="3" Text="Pin pets in the collection window to track them here." TextWrapping="Wrap">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasPinned}" Value="False">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,212 @@
+# Aion 2 Global pet names (English), for autocomplete only. Format: name<TAB>genus. Facts compiled from community guides (keengamer, destructoid, games.gg).
+Pagati	Special
+Black Dragon	Special
+White Dragon	Special
+Sky Whale	Special
+Azure Flame Kumiho	Special
+Swift Lugi	Special
+Wandering Merchant Lugi	Special
+White Bunny	Special
+Chonky Hamster	Special
+Elite Dratona	Cogni
+Krall Laborer	Cogni
+Krall Warrior	Cogni
+Krall Warshaman	Cogni
+Klaw	Cogni
+Klaw Scout	Cogni
+Elite Klaw	Cogni
+Manduri Fighter	Cogni
+Elite Manduri Fighter	Cogni
+Manduri Trebuchet Worker	Cogni
+Varg Berserker	Cogni
+Nagarant Guardian Warrior	Cogni
+Aullaeu Shaman	Cogni
+Aultross's Doppelganger	Cogni
+Mumu Warrior	Cogni
+Mumu Worker	Cogni
+Mumu Overseer	Cogni
+Biruta	Cogni
+Biruta Herbalist	Cogni
+Kuru Worker	Cogni
+Kuru Tinkerer	Cogni
+Kuru Overseer	Cogni
+Urugugu Brawler	Cogni
+Sentinel K'nash	Cogni
+Phantasmal Lakshmi	Cogni
+Pretor Veil Administrator	Cogni
+Enhanced Krall Combatant	Cogni
+Enhanced Krall Sentry	Cogni
+Dratona	Cogni
+Dratona Tinkerer	Cogni
+Kerubar	Cogni
+Kerubian	Cogni
+Kerubiel	Cogni
+Drakan Watcher	Cogni
+Furious Feruk	Cogni
+Addicted Shulak Cart Worker	Cogni
+Dracuni Herbalist	Cogni
+Naga Elite Priest	Cogni
+Modified Lupyllini	Cogni
+Decomposed Lupyllini	Cogni
+Predator Saraswati	Cogni
+Papis	Fera
+Crestlich	Fera
+Male Crestlich	Fera
+Sparkie	Fera
+Giant Sparkie	Fera
+Fossa	Fera
+Elite Keneire	Fera
+Skama	Fera
+Aberrant Skama	Fera
+Aberrant Armadon	Fera
+Starturtle	Fera
+Aberrant Tog	Fera
+Brax	Fera
+Sylphen	Fera
+Potcrab	Fera
+Aberrant Potcrab	Fera
+Baby Aberrant Odyle Spider	Fera
+Mutated Aberrant Odyle Spider	Fera
+Kernon	Fera
+Skyray	Fera
+Drakan Guard Dog	Fera
+Kailin	Fera
+Young Kailin	Fera
+Slink	Fera
+Young Slink	Fera
+Aberrant Odyle Spider	Fera
+Crasaur	Fera
+Lupyllini	Fera
+Airon	Fera
+Cave Bat	Fera
+Ursus	Fera
+Young Ursus	Fera
+Elite Ursus	Fera
+Armadon	Fera
+Grave Rat	Fera
+Coradon	Fera
+Giant Bee	Fera
+Aberrant Bee	Fera
+Scorpion	Fera
+Cadaver Insectoid	Fera
+Tog	Fera
+Young Tog	Fera
+Spider	Fera
+Ashen Spider	Fera
+Unstable Spider	Fera
+Karnif	Fera
+Modified Karnif	Fera
+Elite Karnif	Fera
+Tamed Karnif	Fera
+Tayga	Fera
+Withered Branch Spider	Fera
+Aberrant Coradon	Fera
+Eternal Coradon	Fera
+Zaif	Fera
+Aberrant Zaif	Fera
+Tamed Zaif	Fera
+Mutated Cadaver Insectoid	Fera
+Ashen Lupyllini	Fera
+Mutated Ursus	Fera
+Mutated Insectoid Valka	Fera
+Venomous Insect Sram	Fera
+Basilisk	Fera
+Ashen Basilisk	Fera
+Vivel	Fera
+Flame Barghest	Fera
+Zelophi	Natura
+Fungie	Natura
+Fungen	Natura
+Forest Spirit	Natura
+Mutated Forest Spirit	Natura
+Gravi	Natura
+Large Leaf Gravi	Natura
+Magic Gravi	Natura
+Forest Specter	Natura
+Withered Agrint	Natura
+Agrint	Natura
+Korutin Worker	Natura
+Black Smoke Murute	Natura
+Stone Spirit	Natura
+Nepenthes	Natura
+Lesser Wind Spirit	Natura
+Intermediate Wind Spirit	Natura
+Superior Wind Spirit	Natura
+Ultimate Wind Spirit	Natura
+Lesser Fire Spirit	Natura
+Intermediate Fire Spirit	Natura
+Superior Fire Spirit	Natura
+Ultimate Fire Spirit	Natura
+Lesser Water Spirit	Natura
+Intermediate Water Spirit	Natura
+Superior Water Spirit	Natura
+Ultimate Water Spirit	Natura
+Lesser Earth Spirit	Natura
+Intermediate Earth Spirit	Natura
+Superior Earth Spirit	Natura
+Ultimate Earth Spirit	Natura
+Dionae	Natura
+Forest Dionae	Natura
+Ashen Dionae	Natura
+Red Spark Ignus	Natura
+Forest Guardian	Natura
+Dried Up Forest Guardian	Natura
+Mutated Forest Guardian	Natura
+Odyle Store Spirit	Natura
+Drana Spore	Natura
+Rufflesia	Natura
+Ancient Spirit	Natura
+Spirit King's Bodyguard Warrior	Natura
+Elite Poisonous Spore Fungen	Natura
+Ashen Agrint	Natura
+Thin Agrint	Natura
+Dry Leaf Agrint	Natura
+Black Spirit	Natura
+Kalgolem	Varian
+Blue Kalgolem	Varian
+Drakana Kalgolem	Varian
+Marsh Targon	Varian
+Swarm	Varian
+Drana Swarm	Varian
+Krao Mutant	Varian
+Drakan Probe	Varian
+Slime	Varian
+Drana Slime	Varian
+Contaminated Slime	Varian
+Vigilant Oculazen	Varian
+Oculazen	Varian
+Krao Test Subject	Varian
+Harcon	Varian
+Pino	Varian
+Pino Worker	Varian
+Krao Seal Guardian	Varian
+Swamp Monster	Varian
+Forest Monster	Varian
+Distorted Mutant	Varian
+Gatekeeper Pinopi	Varian
+Drana Mutant Brute	Varian
+Fated Mutant Brute	Varian
+Cadaver Cleaner	Varian
+Parasite Swarm	Varian
+Drana Contaminant	Varian
+Drana Mutant	Varian
+Faded Mutant	Varian
+Fated Floater	Varian
+Flame Stone Guardian Statue	Varian
+Duduka Worker	Varian
+Duduka Trebuchet Worker	Varian
+Drana Predator	Varian
+Faded Predator	Varian
+Mudthorn	Varian
+Poison Blood	Varian
+Elite Soulless Corpse Gnat	Varian
+Silver Blade Rotan	Varian
+Guardite	Varian
+Watcher	Varian
+Elite Guardite	Varian
+Dark Spirit	Varian
+Congealed Drana	Varian
+Faded Drana	Varian
+Black Smoke Molt	
+Red Dragon	
+Rafflesia	

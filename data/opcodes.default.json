@@ -1,0 +1,7 @@
+{
+  "heartbeat": ["0036"],
+  "PetCollectionSnapshot": ["0090"],
+  "PetSoulsGained": ["0D90"],
+  "PetLevelChanged": ["0990", "1490"],
+  "PetSoulsConsumed": ["0E90"]
+}

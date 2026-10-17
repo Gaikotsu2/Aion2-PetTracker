@@ -1,0 +1,29 @@
+<!--
+  Windows Sandbox configuration for analysing captures with the self-contained pt-research.
+  Windows 11 Pro/Enterprise only: enable "Windows Sandbox" in "Turn Windows features on or off", then restart.
+  1. Run scripts\publish-research.ps1 once (creates artifacts\pt-research).
+  2. Double-click this file.
+  If your repository is not in D:\Development\GitHub\Aion2-PetTracker, change the two HostFolder paths
+  (Windows Sandbox needs absolute paths).
+  Both folders are mapped read-only, so write output inside the sandbox (e.g. the Desktop) and copy/paste out
+  anything you want to keep BEFORE closing the sandbox window: the sandbox forgets everything when closed.
+-->
+<Configuration>
+  <vGPU>Disable</vGPU>
+  <Networking>Disable</Networking>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>D:\Development\GitHub\Aion2-PetTracker\artifacts\pt-research</HostFolder>
+      <SandboxFolder>C:\Tools\pt-research</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+    <MappedFolder>
+      <HostFolder>D:\Development\GitHub\Aion2-PetTracker\captures</HostFolder>
+      <SandboxFolder>C:\Captures</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell.exe -NoExit -ExecutionPolicy Bypass -Command "$env:Path += ';C:\Tools\pt-research'; Set-Location C:\Captures; Write-Host 'pt-research is on the PATH. Captures are in C:\Captures (read-only). Example:'; Write-Host '  pt-research import C:\Captures\r2.pcapng -o $HOME\Desktop\r2.a2cap'"</Command>
+  </LogonCommand>
+</Configuration>

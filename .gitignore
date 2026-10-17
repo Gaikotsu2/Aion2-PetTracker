@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.a2cap
+*.pcapng
+TestResults/
+publish/
+signing/metadata.json
+artifacts/
+captures/
+*.pcap
+
+# Personal / local-only
+.obsidian/
+docs/screenshots/

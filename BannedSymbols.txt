@@ -1,0 +1,79 @@
+# Zero-interaction policy: this tool only passively observes network traffic.
+# It must never open, read, write, hook, signal or otherwise touch the AION2 process.
+# Allowed: Process.GetProcessesByName(...) reading only Process.Id, GetExtendedTcpTable, Npcap receive-only capture.
+# Raw Win32 imports (OpenProcess, ReadProcessMemory, ...) cannot be banned by symbol; tests/PetTracker.Tests/ComplianceTests.cs scans the source for them.
+
+# --- System.Diagnostics.Process: anything that opens a handle or reveals process internals ---
+P:System.Diagnostics.Process.Handle; Opens a handle to the game process
+P:System.Diagnostics.Process.SafeHandle; Opens a handle to the game process
+P:System.Diagnostics.Process.MainModule; Opens a handle to the game process
+P:System.Diagnostics.Process.Modules; Opens a handle to the game process
+P:System.Diagnostics.Process.StartTime; Opens a handle to the game process
+P:System.Diagnostics.Process.ExitTime; Opens a handle to the game process
+P:System.Diagnostics.Process.ExitCode; Opens a handle to the game process
+P:System.Diagnostics.Process.HasExited; Opens a handle to the game process
+P:System.Diagnostics.Process.Threads; Opens a handle to the game process
+P:System.Diagnostics.Process.MainWindowHandle; Touches the game window
+P:System.Diagnostics.Process.MainWindowTitle; Touches the game window
+P:System.Diagnostics.Process.Responding; Touches the game window
+P:System.Diagnostics.Process.PriorityClass; Opens a handle to the game process
+P:System.Diagnostics.Process.PriorityBoostEnabled; Opens a handle to the game process
+P:System.Diagnostics.Process.ProcessorAffinity; Opens a handle to the game process
+P:System.Diagnostics.Process.MinWorkingSet; Opens a handle to the game process
+P:System.Diagnostics.Process.MaxWorkingSet; Opens a handle to the game process
+P:System.Diagnostics.Process.WorkingSet64; Opens a handle to the game process
+P:System.Diagnostics.Process.PrivateMemorySize64; Opens a handle to the game process
+P:System.Diagnostics.Process.VirtualMemorySize64; Opens a handle to the game process
+P:System.Diagnostics.Process.TotalProcessorTime; Opens a handle to the game process
+P:System.Diagnostics.Process.UserProcessorTime; Opens a handle to the game process
+P:System.Diagnostics.Process.PrivilegedProcessorTime; Opens a handle to the game process
+P:System.Diagnostics.Process.StandardInput; Not allowed
+P:System.Diagnostics.Process.StandardOutput; Not allowed
+P:System.Diagnostics.Process.StandardError; Not allowed
+M:System.Diagnostics.Process.Kill; Never terminate processes
+M:System.Diagnostics.Process.Kill(System.Boolean); Never terminate processes
+M:System.Diagnostics.Process.CloseMainWindow; Never signal the game window
+M:System.Diagnostics.Process.WaitForExit; Opens a handle to the game process
+M:System.Diagnostics.Process.WaitForExit(System.Int32); Opens a handle to the game process
+M:System.Diagnostics.Process.WaitForExit(System.TimeSpan); Opens a handle to the game process
+M:System.Diagnostics.Process.WaitForExitAsync(System.Threading.CancellationToken); Opens a handle to the game process
+M:System.Diagnostics.Process.WaitForInputIdle; Touches the game window
+M:System.Diagnostics.Process.WaitForInputIdle(System.Int32); Touches the game window
+M:System.Diagnostics.Process.Refresh; Opens a handle to the game process
+M:System.Diagnostics.Process.EnterDebugMode; Never debug
+M:System.Diagnostics.Process.LeaveDebugMode; Never debug
+M:System.Diagnostics.Process.GetProcesses; Enumerates and opens other processes; use GetProcessesByName
+M:System.Diagnostics.Process.GetProcesses(System.String); Enumerates and opens other processes; use GetProcessesByName
+M:System.Diagnostics.Process.GetProcessById(System.Int32); Opens a handle to a process
+M:System.Diagnostics.Process.GetProcessById(System.Int32,System.String); Opens a handle to a process
+M:System.Diagnostics.Process.GetProcessesByName(System.String,System.String); Remote lookup not needed
+M:System.Diagnostics.Process.Start; Never launch or attach to processes
+M:System.Diagnostics.Process.Start(System.Diagnostics.ProcessStartInfo); Never launch or attach to processes
+M:System.Diagnostics.Process.Start(System.String); Never launch or attach to processes
+M:System.Diagnostics.Process.Start(System.String,System.String); Never launch or attach to processes
+M:System.Diagnostics.Process.Start(System.String,System.Collections.Generic.IEnumerable{System.String}); Never launch or attach to processes
+T:System.Diagnostics.ProcessModule; Reads module information of another process
+T:System.Diagnostics.ProcessModuleCollection; Reads module information of another process
+T:System.Diagnostics.ProcessThread; Reads thread information of another process
+T:System.Diagnostics.ProcessThreadCollection; Reads thread information of another process
+T:System.Diagnostics.ProcessStartInfo; Never launch or attach to processes
+
+# --- SharpPcap: capture is receive-only; no injection or sending ---
+M:SharpPcap.IInjectionDevice.SendPacket(System.ReadOnlySpan{System.Byte},SharpPcap.ICaptureHeader); Packet injection is forbidden
+M:SharpPcap.LibPcap.LibPcapLiveDevice.SendPacket(System.ReadOnlySpan{System.Byte},SharpPcap.ICaptureHeader); Packet injection is forbidden
+M:SharpPcap.WinDivert.WinDivertDevice.SendPacket(System.ReadOnlySpan{System.Byte},SharpPcap.ICaptureHeader); Packet injection is forbidden
+M:SharpPcap.WinpkFilter.WinpkFilterDevice.SendPacket(System.ReadOnlySpan{System.Byte},SharpPcap.ICaptureHeader); Packet injection is forbidden
+M:SharpPcap.Tunneling.TunnelDevice.SendPacket(System.ReadOnlySpan{System.Byte},SharpPcap.ICaptureHeader); Packet injection is forbidden
+M:SharpPcap.CaptureDeviceExtensions.SendPacket(SharpPcap.IInjectionDevice,System.Byte[],System.Int32); Packet injection is forbidden
+M:SharpPcap.CaptureDeviceExtensions.SendPacket(SharpPcap.IInjectionDevice,PacketDotNet.Packet); Packet injection is forbidden
+M:SharpPcap.CaptureDeviceExtensions.SendPacket(SharpPcap.IInjectionDevice,PacketDotNet.Packet,System.Int32); Packet injection is forbidden
+M:SharpPcap.CaptureDeviceExtensions.SendPacket(SharpPcap.IInjectionDevice,SharpPcap.RawCapture,SharpPcap.ICaptureHeader); Packet injection is forbidden
+M:SharpPcap.LibPcap.SendQueue.Transmit(SharpPcap.LibPcap.PcapDevice,System.Boolean); Packet injection is forbidden
+M:SharpPcap.LibPcap.SendQueue.Transmit(SharpPcap.LibPcap.PcapDevice,SharpPcap.LibPcap.SendQueueTransmitModes); Packet injection is forbidden
+T:SharpPcap.LibPcap.SendQueue; Packet injection is forbidden
+T:SharpPcap.WinDivert.WinDivertDevice; Diverting traffic is forbidden
+T:SharpPcap.WinpkFilter.WinpkFilterDevice; Diverting traffic is forbidden
+T:SharpPcap.Tunneling.TunnelDevice; Injecting traffic is forbidden
+
+# --- Input synthesis / window access that managed APIs could expose ---
+T:System.Windows.Forms.SendKeys; Never send input
