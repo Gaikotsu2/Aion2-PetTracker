@@ -78,6 +78,6 @@ Agrint = **pet 1207** (L2 71/75 in the r2 snapshot; 74/75 at the start of r4). O
 | 11.284 s | **`14 90`** | `0000 B7040000 03000000 04 06000000 B8240000 00000000` | **Level up to 3** |
 | 11.284 s | `0E 90` | `01 B7040000 4B000000` | 75 souls consumed |
 
-- **Registration (Lv0→1) uses `09 90`, while an insight level-up (here 2→3) uses `14 90`.** Both have the same 23-byte layout: `2 fixed bytes` (`92 09` or `00 00`, not a varint) · `u32 petId` · `u32 newLevel` · `u8` (2 / 4) · `u32 6` · `u32` (2200 / 9400, maybe an owned-effect value) · `u32 0`. L1→L2 hasn't been seen yet; it's presumably `14 90`.
+- **Registration (Lv0→1) uses `09 90`, while an insight level-up (here 2→3) uses `14 90`.** Both have the same 23-byte layout: `2 fixed bytes` (`92 09` or `00 00`, not a varint) · `u32 petId` · `u32 newLevel` · `u8` (2 / 4) · `u32 6` · `u32` (2200 / 9400, maybe an owned-effect value) · `u32 0`. L1→L2 was verified live in the tracker on 2026-10-17 (it accepts both opcodes; no capture was taken, so the exact opcode is presumably `14 90`).
 - `0E 90` is confirmed as **souls consumed** (5 for registration, 75 for L2→L3). The rule is: progress += gained; on level-up, progress −= consumed.
 - Overshoot (a drop that passes the threshold) still hasn't been observed. The rule above handles it naturally if the server behaves the same way.
