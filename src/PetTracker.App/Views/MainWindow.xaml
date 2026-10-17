@@ -11,6 +11,17 @@
         </Style>
 
         <Style x:Key="PetItem" TargetType="ListBoxItem">
+            <!-- Names come preloaded from the catalog, so renaming lives in the row's context menu (or F2). -->
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Header="Rename..." InputGestureText="F2" Command="{Binding BeginRenameCommand}" />
+                        <MenuItem Header="Pin to overlay" IsCheckable="True" IsChecked="{Binding IsPinned}" />
+                        <Separator />
+                        <MenuItem Header="Open on TH.GL" Command="{Binding OpenLinkCommand}" />
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Padding" Value="6,4" />
             <Setter Property="Margin" Value="0,0,0,2" />
@@ -66,7 +77,6 @@
                     <StackPanel Orientation="Horizontal" Style="{StaticResource ViewMode}">
                         <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" Style="{StaticResource Cell}" />
                         <TextBlock Text="{Binding Id, StringFormat=' #{0}'}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
-                        <Button Content="rename" Style="{StaticResource TinyButton}" Margin="8,0,0,0" Command="{Binding BeginRenameCommand}" />
                         <TextBlock Text="needs resync" Foreground="{StaticResource WarnBrush}" Margin="8,0,0,0" VerticalAlignment="Center"
                                    Visibility="{Binding NeedsResync, Converter={StaticResource BoolToVis}}"
                                    ToolTip="An update did not add up. The next login snapshot will fix it." />
@@ -209,33 +219,41 @@
                 </WrapPanel>
             </StackPanel>
 
-            <!-- column headers; widths match the row template -->
-            <Grid Grid.Row="1" Margin="6,6,6,4">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="34" />
-                    <ColumnDefinition Width="*" MinWidth="170" />
-                    <ColumnDefinition Width="70" />
-                    <ColumnDefinition Width="40" />
-                    <ColumnDefinition Width="190" />
-                    <ColumnDefinition Width="40" />
-                    <ColumnDefinition Width="56" />
-                    <ColumnDefinition Width="30" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Pin" Style="{StaticResource Muted}" />
-                <TextBlock Grid.Column="1" Text="Pet" Style="{StaticResource Muted}" />
-                <TextBlock Grid.Column="2" Text="Genus" Style="{StaticResource Muted}" />
-                <TextBlock Grid.Column="3" Text="Lv" Style="{StaticResource Muted}" />
-                <TextBlock Grid.Column="4" Text="Progress" Style="{StaticResource Muted}" />
-                <TextBlock Grid.Column="5" Text="Reg." Style="{StaticResource Muted}" />
-                <TextBlock Grid.Column="6" Text="Session" Style="{StaticResource Muted}" />
-                <TextBlock Grid.Column="7" Text="Link" Style="{StaticResource Muted}" />
-            </Grid>
+            <!-- column headers; widths match the row template. The spacer reserves the list's (always visible)
+                 vertical scrollbar so the star column has the same width in the header and in the rows. -->
+            <DockPanel Grid.Row="1">
+                <Border DockPanel.Dock="Right" Width="{x:Static SystemParameters.VerticalScrollBarWidth}" />
+                <Grid Margin="6,6,6,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="34" />
+                        <ColumnDefinition Width="*" MinWidth="170" />
+                        <ColumnDefinition Width="70" />
+                        <ColumnDefinition Width="40" />
+                        <ColumnDefinition Width="190" />
+                        <ColumnDefinition Width="40" />
+                        <ColumnDefinition Width="56" />
+                        <ColumnDefinition Width="30" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Pin" Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="1" Text="Pet" Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="2" Text="Genus" Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="3" Text="Lv" Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="4" Text="Progress" Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="5" Text="Reg." Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="6" Text="Session" Style="{StaticResource Muted}" />
+                    <TextBlock Grid.Column="7" Text="Link" Style="{StaticResource Muted}" />
+                </Grid>
+            </DockPanel>
 
             <ListBox x:Name="PetList" Grid.Row="2" ItemsSource="{Binding View}" SelectedItem="{Binding SelectedRow}"
                      ItemTemplate="{StaticResource PetRow}" ItemContainerStyle="{StaticResource PetItem}"
                      Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
+                     Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Visible"
+                     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                <ListBox.InputBindings>
+                    <KeyBinding Key="F2" Command="{Binding SelectedRow.BeginRenameCommand}" />
+                </ListBox.InputBindings>
+            </ListBox>
         </Grid>
 
         <!-- settings tab -->
