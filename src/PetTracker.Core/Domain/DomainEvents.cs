@@ -6,6 +6,9 @@ public sealed record SoulGained(DateTime Timestamp, int PetId, int Amount, int N
 
 public sealed record PetRegistered(DateTime Timestamp, int PetId) : DomainEvent(Timestamp);
 
+/// <summary>A level change that consumed no souls: the pet was granted directly (shop purchase of a new pet).</summary>
+public sealed record PetAcquired(DateTime Timestamp, int PetId, int Level) : DomainEvent(Timestamp);
+
 public sealed record PetLevelUp(DateTime Timestamp, int PetId, int OldLevel, int NewLevel) : DomainEvent(Timestamp);
 
 /// <summary>Progress changed because a level change consumed souls (not shown in the live feed).</summary>

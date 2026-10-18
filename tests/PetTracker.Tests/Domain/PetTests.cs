@@ -222,6 +222,39 @@ public class PetCollectionTests
     }
 
     [Fact]
+    public void ShopPurchaseOfNewPetRegistersWithoutConsuming()
+    {
+        // shop-pet.a2cap M4: buying Drana Swarm (not owned) sends only 09 90, with no 0D 90 and no 0E 90.
+        var c = new PetCollection();
+        c.Apply(Snap([(1098, 1)], [(1098, 7)]), T0);
+        var all = new List<DomainEvent>();
+        all.AddRange(c.Apply(Level(1129, 1), At(71.901)));
+        all.AddRange(c.Flush());
+
+        var pet = c.Get(1129)!;
+        Assert.Equal(1, pet.Level);
+        Assert.Equal(0, pet.Progress);
+        Assert.False(pet.NeedsResync);
+        Assert.DoesNotContain(all, e => e is Inconsistency);
+        Assert.Contains(all, e => e is PetRegistered { PetId: 1129 });
+        Assert.Contains(all, e => e is PetAcquired { PetId: 1129, Level: 1 });
+    }
+
+    [Fact]
+    public void ShopPurchaseOfOwnedPetAddsFiveSouls()
+    {
+        // shop-pet.a2cap M3: buying Modified Karnif again sends 0D 90 with +5 souls.
+        var c = new PetCollection();
+        c.Apply(Snap([(1098, 1)], [(1098, 7)]), T0);
+        c.Apply(Gain(1098, 5), At(51.101));
+        var events = c.Flush();
+
+        Assert.Equal(12, c.Get(1098)!.Progress);
+        Assert.Equal(1, c.Get(1098)!.Level);
+        Assert.DoesNotContain(events, e => e is Inconsistency);
+    }
+
+    [Fact]
     public void ThresholdModeIgnoresTheReportedValue()
     {
         var c = new PetCollection(new PetRules { ConsumeMode = ConsumeMode.Threshold });

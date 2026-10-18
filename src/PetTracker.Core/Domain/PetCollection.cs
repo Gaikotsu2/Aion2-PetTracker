@@ -184,11 +184,20 @@ public sealed class PetCollection(PetRules? rules = null)
         {
             if (!force && now - p.At <= window)
                 continue;
-            // No 0E90 in the burst: subtract the threshold of the level that was left.
+            // No 0E90 in the burst. With enough souls to pay the threshold, assume the message was missed and subtract it.
+            // Without them the pet was granted directly: buying a new pet in the shop sends only 09 90 (shop-pet.a2cap).
             _pending.Remove(id);
             var entry = _pets[id];
-            entry.Progress -= Rules.ThresholdCost(p.OldLevel, p.NewLevel);
-            events.Add(new ProgressAdjusted(p.At + window, id, entry.Progress));
+            var cost = Rules.ThresholdCost(p.OldLevel, p.NewLevel);
+            if (entry.Progress >= cost)
+            {
+                entry.Progress -= cost;
+                events.Add(new ProgressAdjusted(p.At + window, id, entry.Progress));
+            }
+            else
+            {
+                events.Add(new PetAcquired(p.At + window, id, p.NewLevel));
+            }
             Touch(id, p.At + window);
         }
 

@@ -101,6 +101,7 @@ public sealed class EventLog(string path)
         SoulGained g => new Entry(g.Timestamp, nameof(SoulGained), g.PetId, g.Amount, g.NewProgress, g.Threshold),
         PetRegistered r => new Entry(r.Timestamp, nameof(PetRegistered), r.PetId),
         PetLevelUp l => new Entry(l.Timestamp, nameof(PetLevelUp), l.PetId, Level: l.NewLevel, OldLevel: l.OldLevel),
+        PetAcquired a => new Entry(a.Timestamp, nameof(PetAcquired), a.PetId, Level: a.Level),
         ProgressAdjusted p => new Entry(p.Timestamp, nameof(ProgressAdjusted), p.PetId, Progress: p.NewProgress),
         SnapshotLoaded s => new Entry(s.Timestamp, nameof(SnapshotLoaded), Count: s.Count, Total: s.TotalKnown),
         Inconsistency i => new Entry(i.Timestamp, nameof(Inconsistency), i.PetId, Message: i.Message, NeedsResync: i.NeedsResync),
