@@ -564,6 +564,50 @@ public sealed class TrackerModel : ObservableObject, IDisposable
         catch (UnauthorizedAccessException) { }
     }
 
+    // --- import / restore ---------------------------------------------------------------------------------------
+
+    /// <summary>Everything a backup file holds, as it is right now.</summary>
+    public Backup CreateBackup() => BackupFile.Create(Collection.Pets, Catalog.Overrides, Settings);
+
+    /// <summary>Writes backups\auto-yyyyMMdd-HHmmss.json before an import or a restore replaces anything. Returns the path.</summary>
+    public string WriteSafetyBackup()
+    {
+        var path = Path.Combine(Paths.Backups, $"auto-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+        BackupFile.Write(path, CreateBackup());
+        return path;
+    }
+
+    /// <summary>Replaces the whole collection (PetSouls import, backup restore) and saves it at once.</summary>
+    public void ReplaceCollection(IEnumerable<PetState> states, string reason)
+    {
+        Publish(Collection.Flush());
+        Collection.Restore(states);
+        SyncRows();
+        foreach (var row in _rows.Values)
+            row.RefreshSession();
+        Save();
+        Note("CollectionReplaced", reason);
+    }
+
+    /// <summary>Takes over a restored backup's settings. The overlay's position and size stay as they are on this PC.</summary>
+    public void ApplySettings(AppSettings s)
+    {
+        Opacity = s.Opacity;
+        Scale = s.Scale;
+        ClickThrough = s.ClickThrough;
+        AdapterOverride = s.AdapterOverride;
+        Settings.Hotkeys = s.Hotkeys ?? new HotkeySettings();
+        Settings.PetSouls = s.PetSouls;
+
+        _pinned.Clear();
+        _pinned.UnionWith(s.PinnedPets ?? []);
+        Settings.PinnedPets = _pinned.Order().ToList();
+        foreach (var row in _rows.Values)
+            row.RefreshPin();
+        PinsChanged?.Invoke();
+        SaveSettings();
+    }
+
     public void Dispose()
     {
         if (_disposed)

@@ -134,6 +134,25 @@ public sealed class PetCatalog
         Changed?.Invoke();
     }
 
+    /// <summary>The user's own entries from pet-names.json.</summary>
+    public IReadOnlyList<PetInfo> Overrides => _overrides.Values.OrderBy(p => p.Id).ToList();
+
+    /// <summary>Replaces all of the user's own entries (restoring a backup) and saves pet-names.json.</summary>
+    public void ReplaceOverrides(IEnumerable<PetInfo> overrides)
+    {
+        _overrides.Clear();
+        foreach (var info in overrides)
+        {
+            var clean = new PetInfo(info.Id, Clean(info.Name), Clean(info.Genus), Clean(info.Notes));
+            if (clean.Name is not null || clean.Genus is not null || clean.Notes is not null)
+                _overrides[info.Id] = clean;
+        }
+        Save();
+        Changed?.Invoke();
+    }
+
+    private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
     public void Save()
     {
         if (_overridesPath is null)

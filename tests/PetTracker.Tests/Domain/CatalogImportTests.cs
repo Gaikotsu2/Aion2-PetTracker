@@ -176,6 +176,8 @@ public class LinkPolicyTests
         Assert.True(LinkPolicy.IsAllowedUrl("https://aion2.th.gl/db/pets/pet_1136"));
         Assert.True(LinkPolicy.IsPetUrl(LinkPolicy.PetUrl(1005)));
         Assert.True(LinkPolicy.IsAllowedUrl(LinkPolicy.NpcapUrl));
+        Assert.True(LinkPolicy.IsAllowedUrl(LinkPolicy.PetSoulsUrl));
+        Assert.True(LinkPolicy.IsAllowedUrl("https://petsouls.dev/"));
     }
 
     [Theory]
@@ -194,6 +196,10 @@ public class LinkPolicyTests
     [InlineData("https://aion2.th.gl/db/pets/pet_1136/")]
     [InlineData("https://aion2.th.gl/db/pets/pet_1136?x=1")]
     [InlineData("https://aion2.th.gl/db/pets/pet_1136#top")]
+    [InlineData("http://petsouls.dev/")]
+    [InlineData("https://petsouls.dev/evil")]
+    [InlineData("https://petsouls.dev/#/x")]
+    [InlineData("https://petsouls.dev.evil.example/")]
     [InlineData("https://aion2.th.gl/db/pets/pet_1136\n")]
     [InlineData("https://aion2.th.gl/db/items/item_1136")]
     [InlineData("https://aion2.th.gl/db/pets/../items/pet_1136")]

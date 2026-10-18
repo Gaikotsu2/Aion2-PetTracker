@@ -17,6 +17,7 @@
     <SolidColorBrush x:Key="SpecialBackBrush" Color="#33C792FF" />
     <SolidColorBrush x:Key="BarBackBrush" Color="#55000000" />
     <SolidColorBrush x:Key="InputBrush" Color="#FF0F1217" />
+    <SolidColorBrush x:Key="MenuHoverBrush" Color="#334EA1FF" />
 
     <Style TargetType="TextBlock">
         <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
@@ -115,6 +116,72 @@
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
     </Style>
 
+    <!-- Settings: a vertical section list on the left, titled cards on the right. -->
+    <Style x:Key="SettingsCard" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource RowAltBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDim}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+
+    <Style x:Key="CardTitle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <Style x:Key="CardHint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="SectionTitle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+
+    <Style x:Key="NavItem" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Grid>
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="12,7">
+                            <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <Border x:Name="Bar" Width="3" HorizontalAlignment="Left" CornerRadius="2" Margin="0,5" Background="{StaticResource AccentBrush}" Visibility="Hidden" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource MenuHoverBrush}" />
+                            <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+                            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsSelected" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF" />
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="NavList" TargetType="ListBox">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="ItemContainerStyle" Value="{StaticResource NavItem}" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    </Style>
+
     <Style x:Key="PetBar" TargetType="ProgressBar">
         <Setter Property="Height" Value="8" />
         <Setter Property="Minimum" Value="0" />
@@ -134,7 +201,6 @@
 
     <!-- Context menus: dark to match the windows (the default chrome is light, and the global TextBlock style
          makes its text white). -->
-    <SolidColorBrush x:Key="MenuHoverBrush" Color="#334EA1FF" />
 
     <Style TargetType="ContextMenu">
         <Setter Property="Foreground" Value="{StaticResource TextBrush}" />

@@ -13,7 +13,8 @@ Data: TH.GL (aion2.th.gl), game data © NCSOFT.
 
 The import is a one-time, polite fetch of a single list page (`pt-research import-names`, descriptive User-Agent, at most
 one request per second, hard cap of 220 requests). The tracker app itself makes no network calls; the per-pet link
-button only opens `https://aion2.th.gl/db/pets/pet_<id>` in your browser. Your own names in
+button only opens `https://aion2.th.gl/db/pets/pet_<id>` in your browser (and Settings → Data can open
+`https://petsouls.dev/`). Your own names in
 `%AppData%\Aion2PetTracker\pet-names.json` always win over the shipped data.
 
 ## Install, update, uninstall
@@ -43,16 +44,24 @@ To just build without installing: `scripts\publish.ps1` writes `artifacts\PetTra
 **Uninstall.** `scripts\install.ps1 -Uninstall` removes the program folder, the Start Menu shortcut and the "Start with
 Windows" entry. It keeps your collection, history, settings and pet names; add `-RemoveData` to delete those too.
 
-**Start with Windows** is a tick box in the collection window, Settings. It adds one value under
+**Start with Windows** is a tick box in the collection window, Settings → General. It adds one value under
 `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run` and starts the tracker minimized: the overlay only, the
 collection window stays in the tray. Launching the tracker a second time just opens the collection window of the first.
+
+**PetSouls.dev and backups.** Settings → Data → **Copy PetSouls code** puts your pet levels on the clipboard in the format
+[PetSouls.dev](https://petsouls.dev/) imports (its Settings → Import). Unregistered pets are left out, and the site
+knows levels only, not souls progress. You can also paste a code exported from the site to set levels in the tracker;
+the next login snapshot from the game overwrites them with the real state. The targets and watch list from that code
+are kept and sent back on the next export, so a round trip does not wipe them. **Export backup** and **Restore backup**
+move the collection, your pet names, pins and settings to another PC in one file. Before every import or restore the
+current state is saved to `%AppData%\Aion2PetTracker\backups`.
 
 **Smart App Control.** On a PC with Smart App Control enforced, Windows refuses to run unsigned programs, which includes a
 freshly built tracker (error `0x800711C7`). You cannot allow-list a single file. For research,
 [docs/RESEARCH-PCAPNG.md](docs/RESEARCH-PCAPNG.md) describes a workaround with Wireshark's signed `dumpcap`.
 
 **After a game update.** Opcodes can be renumbered by a patch. The tracker notices ("Unknown version"), offers detected new
-codes with an Apply button, and has an opcode editor in Settings. The whole routine, including the `pt-research
+codes with an Apply button, and has an opcode editor in Settings → Opcodes. The whole routine, including the `pt-research
 detect-opcodes` and `verify` commands, is in [docs/PATCH-DAY.md](docs/PATCH-DAY.md).
 
 ## License

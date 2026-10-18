@@ -13,6 +13,8 @@ public sealed record AppPaths(string Folder)
     public string PetNames => Path.Combine(Folder, "pet-names.json");
     /// <summary>User opcode override, merged over data/opcodes.default.json.</summary>
     public string Opcodes => Path.Combine(Folder, "opcodes.json");
+    /// <summary>Automatic backups written before an import or a restore replaces the collection.</summary>
+    public string Backups => Path.Combine(Folder, "backups");
 
     public static string DefaultFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Aion2PetTracker");
 
@@ -157,6 +159,8 @@ public sealed class AppSettings
     public List<int> PinnedPets { get; set; } = [];
     public string? AdapterOverride { get; set; }
     public HotkeySettings Hotkeys { get; set; } = new();
+    /// <summary>Targets, other and watch from the last PetSouls import, sent back on export; null until then.</summary>
+    public PetSoulsExtras? PetSouls { get; set; }
 }
 
 public sealed class SettingsStore(string path)
