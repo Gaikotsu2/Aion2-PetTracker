@@ -178,6 +178,8 @@ public class LinkPolicyTests
         Assert.True(LinkPolicy.IsAllowedUrl(LinkPolicy.NpcapUrl));
         Assert.True(LinkPolicy.IsAllowedUrl(LinkPolicy.PetSoulsUrl));
         Assert.True(LinkPolicy.IsAllowedUrl("https://petsouls.dev/"));
+        Assert.True(LinkPolicy.IsAllowedUrl(LinkPolicy.RepoUrl));
+        Assert.True(LinkPolicy.IsAllowedUrl("https://github.com/Gaikotsu2/Aion2-PetTracker"));
     }
 
     [Theory]
@@ -200,6 +202,11 @@ public class LinkPolicyTests
     [InlineData("https://petsouls.dev/evil")]
     [InlineData("https://petsouls.dev/#/x")]
     [InlineData("https://petsouls.dev.evil.example/")]
+    [InlineData("http://github.com/Gaikotsu2/Aion2-PetTracker")]
+    [InlineData("https://github.com/Gaikotsu2/Aion2-PetTracker/../evil")]
+    [InlineData("https://github.com/Gaikotsu2/Aion2-PetTracker/releases/download/x.exe")]
+    [InlineData("https://github.com/someone-else/Aion2-PetTracker")]
+    [InlineData("https://github.com.evil.example/Gaikotsu2/Aion2-PetTracker")]
     [InlineData("https://aion2.th.gl/db/pets/pet_1136\n")]
     [InlineData("https://aion2.th.gl/db/items/item_1136")]
     [InlineData("https://aion2.th.gl/db/pets/../items/pet_1136")]

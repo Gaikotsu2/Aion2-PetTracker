@@ -176,7 +176,7 @@ public partial class App : Application
             System.Windows.Forms.ToolTipIcon.Info);
     }
 
-    private void Quit()
+    internal void Quit()
     {
         if (_exiting)
             return;

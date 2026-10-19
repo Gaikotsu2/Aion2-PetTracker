@@ -156,6 +156,8 @@ public sealed class AppSettings
     public double Scale { get; set; } = 1.0;
     public bool OverlayVisible { get; set; } = true;
     public bool ClickThrough { get; set; }
+    /// <summary>True: the collection window's close button hides it to the tray. False: it exits the app.</summary>
+    public bool CloseToTray { get; set; } = true;
     public List<int> PinnedPets { get; set; } = [];
     public string? AdapterOverride { get; set; }
     public HotkeySettings Hotkeys { get; set; } = new();

@@ -46,6 +46,7 @@ public sealed class MainViewModel : ObservableObject
         ApplyAdapterCommand = new RelayCommand(() => { model.SaveSettings(); restartCapture(); });
         OpenDataFolderCommand = new RelayCommand(() => ExternalLinks.Open(model.Paths.Folder, model.Paths.Folder));
         OpenNpcapCommand = new RelayCommand(() => ExternalLinks.Open(ExternalLinks.NpcapUrl, model.Paths.Folder));
+        OpenRepoCommand = new RelayCommand(() => ExternalLinks.Open(LinkPolicy.RepoUrl, model.Paths.Folder));
         OpenOpcodesFileCommand = new RelayCommand(() => ExternalLinks.Open(model.Paths.Opcodes, model.Paths.Folder, model.Paths.Opcodes));
         SaveOpcodesCommand = new RelayCommand(SaveOpcodes);
         ResetOpcodesCommand = new RelayCommand(ResetOpcodes);
@@ -84,6 +85,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand ApplyAdapterCommand { get; }
     public ICommand OpenDataFolderCommand { get; }
     public ICommand OpenNpcapCommand { get; }
+    public ICommand OpenRepoCommand { get; }
     public ICommand ClearFiltersCommand { get; }
     public ICommand ResetSessionCommand { get; }
 
@@ -180,6 +182,25 @@ public sealed class MainViewModel : ObservableObject
             Raise();
         }
     }
+
+    // --- close button -----------------------------------------------------------------------------------------------
+
+    /// <summary>What the collection window's close button does; the tray menu's Exit always quits.</summary>
+    public bool CloseToTray
+    {
+        get => Model.Settings.CloseToTray;
+        set
+        {
+            if (value == Model.Settings.CloseToTray)
+                return;
+            Model.Settings.CloseToTray = value;
+            Model.SaveSettings();
+            Raise();
+            Raise(nameof(CloseExits));
+        }
+    }
+
+    public bool CloseExits { get => !CloseToTray; set => CloseToTray = !value; }
 
     public bool CanStartWithWindows => AutoStart.CanRegister(_exePath);
     public string AutoStartMessage { get => _autoStartMessage; private set => Set(ref _autoStartMessage, value); }

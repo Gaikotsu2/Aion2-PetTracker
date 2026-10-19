@@ -20,7 +20,10 @@ public partial class MainWindow : Window
         };
     }
 
-    /// <summary>Set by App.Quit; closing the window any other way hides it to the tray (with a notification).</summary>
+    /// <summary>
+    /// Set by App.Quit; closing the window any other way either hides it to the tray (with a notification) or,
+    /// when the user chose "Exit the application", runs App.Quit.
+    /// </summary>
     public bool ReallyClose { get; set; }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -28,8 +31,17 @@ public partial class MainWindow : Window
         if (!ReallyClose)
         {
             e.Cancel = true;
-            Hide();
-            ((App)Application.Current).NotifyHiddenToTray();
+            var app = (App)Application.Current;
+            if (_viewModel.Model.Settings.CloseToTray)
+            {
+                Hide();
+                app.NotifyHiddenToTray();
+            }
+            else
+            {
+                // Deferred: Quit closes this window again, which must not happen inside OnClosing.
+                Dispatcher.BeginInvoke(app.Quit);
+            }
         }
         base.OnClosing(e);
     }

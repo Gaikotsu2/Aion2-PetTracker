@@ -14,7 +14,8 @@ public sealed class DataTransferViewModel : ObservableObject
 {
     private readonly TrackerModel _model;
     private readonly Action _settingsRestored;
-    private string _importText = "", _petSoulsMessage = "", _backupMessage = "";
+    private string _importText = "", _petSoulsMessage = "", _backupMessage = "", _copyStatus = "";
+    private bool _isCopyError;
 
     public DataTransferViewModel(TrackerModel model, Action settingsRestored)
     {
@@ -40,6 +41,9 @@ public sealed class DataTransferViewModel : ObservableObject
     public string ImportText { get => _importText; set => Set(ref _importText, value ?? ""); }
     public string PetSoulsMessage { get => _petSoulsMessage; private set => Set(ref _petSoulsMessage, value); }
     public string BackupMessage { get => _backupMessage; private set => Set(ref _backupMessage, value); }
+    /// <summary>Short result line under the Copy button; the view fades it out a few seconds after each change.</summary>
+    public string CopyStatus { get => _copyStatus; private set => Set(ref _copyStatus, value); }
+    public bool IsCopyError { get => _isCopyError; private set => Set(ref _isCopyError, value); }
 
     private PetSoulsProfile CurrentProfile() => PetSoulsFormat.FromCollection(_model.Collection.Pets, _model.Settings.PetSouls);
 
@@ -52,13 +56,18 @@ public sealed class DataTransferViewModel : ObservableObject
     private void CopyPetSoulsCode()
     {
         var profile = CurrentProfile();
+        CopyStatus = ""; // a repeat click with the same text must still update the binding and restart the fade
         try
         {
             Clipboard.SetText(PetSoulsFormat.ToCode(profile));
+            IsCopyError = false;
+            CopyStatus = $"✓ Code copied to the clipboard ({profile.Levels.Count} registered pet(s)).";
             PetSoulsMessage = $"Copied a code with {profile.Levels.Count} registered pet(s). On PetSouls.dev open Settings, paste it under Import." + ExtrasNote(profile);
         }
         catch (ExternalException ex)
         {
+            IsCopyError = true;
+            CopyStatus = "Could not copy: the clipboard is busy. Try again.";
             PetSoulsMessage = "The clipboard is busy (another program holds it). Try again. " + ex.Message;
         }
     }
