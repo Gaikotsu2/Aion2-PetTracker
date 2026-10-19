@@ -60,9 +60,10 @@ linking to the Npcap download.
 **Collection window.** All your pets with genus, level, souls progress and this session's gains. Filter and sort with
 the buttons at the top. Tick **Pin** to show a pet on the overlay; right-click a pet to rename it or open it on TH.GL.
 
-**Overlay.** Shows your pinned pets and recent events above the game.
+**Overlay.** Shows your pinned pets, recent events such as souls gained and level-ups, and your souls per hour, above
+the game.
 
-<img src="docs/screenshots/app-overlay.png" alt="The overlay with three pinned pets and their souls progress" width="300">
+<img src="docs/screenshots/app-overlay.png" alt="The overlay: recent soul gains and a level-up, souls per hour, and three pinned pets with their souls progress" width="300">
 
 Default hotkeys: **Ctrl+Shift+P** shows or hides the overlay, **Ctrl+Shift+L** turns click-through on and off (so
 your clicks go to the game instead). Opacity, size and hotkeys are in Settings → Overlay.
