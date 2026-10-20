@@ -158,6 +158,8 @@ public sealed class AppSettings
     public bool ClickThrough { get; set; }
     /// <summary>True: the collection window's close button hides it to the tray. False: it exits the app.</summary>
     public bool CloseToTray { get; set; } = true;
+    /// <summary>Whether the collection window's filter panel is open.</summary>
+    public bool FiltersExpanded { get; set; } = true;
     public List<int> PinnedPets { get; set; } = [];
     public string? AdapterOverride { get; set; }
     public HotkeySettings Hotkeys { get; set; } = new();

@@ -13,8 +13,8 @@ namespace PetTracker.App.ViewModels;
 
 public sealed class MainViewModel : ObservableObject
 {
-    private string _genus = "All", _level = "Any level", _state = "All", _sort = "Id", _tab = "Collection", _search = "", _settingsSection = "General";
-    private bool _hasSoulsOnly, _hideSpecial;
+    private string _genus = "All", _level = "Any level", _state = "All", _sort = "Id", _tab = "Collection", _search = "", _settingsSection = "General", _source = "All";
+    private bool _hasSoulsOnly, _hideSpecial, _hideDungeon, _hideShop;
     private PetRowViewModel? _selected;
     private string _hotkeyMessage = "";
     private string _toggleOverlayText, _toggleClickThroughText;
@@ -75,6 +75,7 @@ public sealed class MainViewModel : ObservableObject
     public ICollectionView View { get; }
 
     public IReadOnlyList<string> GenusOptions { get; } = ["All", "Fera", "Cogni", "Natura", "Varian", "Special"];
+    public IReadOnlyList<string> SourceOptions { get; } = ["All", PetSource.Dungeon, PetSource.Shop];
     public IReadOnlyList<string> LevelOptions { get; } = ["Any level", "L1", "L2", "L3"];
     public IReadOnlyList<string> StateOptions { get; } = ["All", "Registered", "Unregistered"];
     public IReadOnlyList<string> SortOptions { get; } = ["Id", "Name", "Level", "Progress", "Session"];
@@ -233,6 +234,30 @@ public sealed class MainViewModel : ObservableObject
     public string SearchText { get => _search; set { if (Set(ref _search, value)) Refilter(); } }
     public bool HasSoulsOnly { get => _hasSoulsOnly; set { if (Set(ref _hasSoulsOnly, value)) Refilter(); } }
     public bool HideSpecial { get => _hideSpecial; set { if (Set(ref _hideSpecial, value)) Refilter(); } }
+    public string SelectedSource { get => _source; set { if (Set(ref _source, value)) Refilter(); } }
+    public bool HideDungeon { get => _hideDungeon; set { if (Set(ref _hideDungeon, value)) Refilter(); } }
+    public bool HideShop { get => _hideShop; set { if (Set(ref _hideShop, value)) Refilter(); } }
+
+    /// <summary>Whether the filter panel is open; remembered in settings.</summary>
+    public bool FiltersExpanded
+    {
+        get => Model.Settings.FiltersExpanded;
+        set
+        {
+            if (value == Model.Settings.FiltersExpanded)
+                return;
+            Model.Settings.FiltersExpanded = value;
+            Model.SaveSettings();
+            Raise();
+        }
+    }
+
+    /// <summary>Filters in the panel that are not at their default (search and sort stay visible, so they are not counted).</summary>
+    public int ActiveFilterCount =>
+        new[] { _genus != "All", _source != "All", _level != "Any level", _state != "All", _hasSoulsOnly, _hideSpecial, _hideDungeon, _hideShop }
+            .Count(b => b);
+
+    public string FiltersToggleText => ActiveFilterCount == 0 ? "Filters" : $"Filters ({ActiveFilterCount} active)";
 
     public string SelectedSort
     {
@@ -285,6 +310,8 @@ public sealed class MainViewModel : ObservableObject
     private void ClearFilters()
     {
         _genus = "All"; _level = "Any level"; _state = "All"; _search = ""; _hasSoulsOnly = false; _hideSpecial = false;
+        _source = "All"; _hideDungeon = false; _hideShop = false;
+        Raise(nameof(SelectedSource)); Raise(nameof(HideDungeon)); Raise(nameof(HideShop));
         Raise(nameof(SelectedGenus)); Raise(nameof(SelectedLevel)); Raise(nameof(SelectedState));
         Raise(nameof(SearchText)); Raise(nameof(HasSoulsOnly)); Raise(nameof(HideSpecial));
         Refilter();
@@ -294,6 +321,8 @@ public sealed class MainViewModel : ObservableObject
     {
         View.Refresh();
         Raise(nameof(ShownText));
+        Raise(nameof(ActiveFilterCount));
+        Raise(nameof(FiltersToggleText));
     }
 
     private bool Matches(PetRowViewModel r)
@@ -310,10 +339,17 @@ public sealed class MainViewModel : ObservableObject
             return false;
         if (_hideSpecial && r.IsSpecial)
             return false;
+        if (_source != "All" && !string.Equals(r.Source, _source, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (_hideDungeon && r.IsDungeon)
+            return false;
+        if (_hideShop && r.IsShop)
+            return false;
         if (_search.Length > 0
             && !r.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase)
             && !r.Id.ToString().Contains(_search, StringComparison.Ordinal)
-            && !r.Genus.Contains(_search, StringComparison.OrdinalIgnoreCase))
+            && !r.Genus.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            && !r.Source.Contains(_search, StringComparison.OrdinalIgnoreCase))
             return false;
         return true;
     }

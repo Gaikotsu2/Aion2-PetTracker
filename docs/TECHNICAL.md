@@ -77,6 +77,11 @@ Pet ids, names and genera in `data/pets.json` were imported once from the commun
 (<https://aion2.th.gl/db/pets>), which lists the same pet ids the game server sends. `data/pets.source.json` records
 the source, fetch date and credit line.
 
+Pets limited to one place carry a hand-maintained `"source"` field: `"Dungeon"` (dungeon drops only, for example
+from bosses) or `"Shop"` (only sold in a shop), e.g. `{"id":1123,"name":"...","genus":"Fera","source":"Dungeon"}`.
+It is independent of the genus, does not change the Collection Status count, and drives the Dungeon / Shop chips and
+filters in the collection window. Any other value is ignored. Re-running `import-names` keeps it.
+
 The import was a one-time, polite fetch of a single list page (`pt-research import-names`, descriptive User-Agent, at
 most one request per second, hard cap of 220 requests). The tracker app itself makes no network calls: the per-pet
 link button only opens `https://aion2.th.gl/db/pets/pet_<id>` in your browser, and Settings → Data can open

@@ -39,6 +39,12 @@ public sealed class FeedItem : ObservableObject
     public bool IsSpecial { get; private set; }
     public string SpecialTooltip => PetGenus.SpecialTooltip;
 
+    /// <summary>Dungeon / Shop exclusive pets get a tag too.</summary>
+    public bool IsDungeon { get; private set; }
+    public bool IsShop { get; private set; }
+    public string DungeonTooltip => PetSource.DungeonTooltip;
+    public string ShopTooltip => PetSource.ShopTooltip;
+
     /// <summary>Unknown pets get a small "name" button.</summary>
     public bool ShowNameButton { get; private set; }
 
@@ -47,7 +53,11 @@ public sealed class FeedItem : ObservableObject
         Text = DomainEventFormatter.Describe(_event, _model.Catalog) ?? "";
         ShowNameButton = PetId is { } id && !_model.Catalog.HasName(id);
         IsSpecial = PetId is { } sid && _model.Catalog.IsSpecial(sid);
+        IsDungeon = PetId is { } did && _model.Catalog.IsDungeon(did);
+        IsShop = PetId is { } hid && _model.Catalog.IsShop(hid);
         Raise(nameof(IsSpecial));
+        Raise(nameof(IsDungeon));
+        Raise(nameof(IsShop));
         Raise(nameof(Text));
         Raise(nameof(ShowNameButton));
     }

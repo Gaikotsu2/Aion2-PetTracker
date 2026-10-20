@@ -69,6 +69,12 @@
                             <TextBlock DockPanel.Dock="Right" Text="SP" FontSize="9" Margin="6,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource SpecialBrush}"
                                        ToolTip="{Binding SpecialTooltip}" Opacity="0.8"
                                        Visibility="{Binding IsSpecial, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock DockPanel.Dock="Right" Text="DG" FontSize="9" Margin="6,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource DungeonBrush}"
+                                       ToolTip="{Binding DungeonTooltip}" Opacity="0.8"
+                                       Visibility="{Binding IsDungeon, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock DockPanel.Dock="Right" Text="SH" FontSize="9" Margin="6,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource ShopBrush}"
+                                       ToolTip="{Binding ShopTooltip}" Opacity="0.8"
+                                       Visibility="{Binding IsShop, Converter={StaticResource BoolToVis}}" />
                             <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">

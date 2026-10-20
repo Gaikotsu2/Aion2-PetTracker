@@ -153,6 +153,38 @@ public class CatalogImportTests
     }
 
     [Fact]
+    public void SourceTagsDungeonAndShopPetsWithoutChangingTheCount()
+    {
+        var catalog = new PetCatalog();
+        catalog.LoadBase("""
+            [{"id":1002,"name":"Krall","genus":"Cogni","source":"Dungeon"},{"id":1005,"name":"Klaw","genus":"Cogni","source":" shop "},
+             {"id":1136,"name":"Rafflesia","genus":"Natura","source":"Somewhere"},{"id":1001,"name":"Black Dragon","genus":"Special","source":"Shop"}]
+            """);
+
+        Assert.Equal("Dungeon", catalog.SourceOf(1002));
+        Assert.True(catalog.IsDungeon(1002));
+        Assert.False(catalog.IsShop(1002));
+        Assert.Equal("Shop", catalog.SourceOf(1005));
+        Assert.True(catalog.IsShop(1005));
+        Assert.Null(catalog.SourceOf(1136));
+        Assert.Null(catalog.SourceOf(9999));
+        Assert.True(catalog.IsShop(1001) && catalog.IsSpecial(1001));
+        Assert.Equal(new GameCollectionCount(1, 3, 0, 1), catalog.GameCount([State(1002, 1)]));
+    }
+
+    [Fact]
+    public void MergeKeepsTheHandMaintainedSource()
+    {
+        var existing = """[{"id":1002,"name":"Krall","genus":"Cogni","source":"Dungeon"}]""";
+        var (json, _) = CatalogMerge.Merge(existing, [new ImportedPet(1002, "Krall Laborer", "Cogni")]);
+
+        var catalog = new PetCatalog();
+        catalog.LoadBase(json);
+        Assert.Equal("Krall Laborer", catalog.NameOf(1002));
+        Assert.Equal("Dungeon", catalog.SourceOf(1002));
+    }
+
+    [Fact]
     public void ShippedCatalogHasTheKnownShape()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "data", "pets.json");

@@ -79,6 +79,35 @@
                     <StackPanel Orientation="Horizontal" Style="{StaticResource ViewMode}">
                         <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" Style="{StaticResource Cell}" />
                         <TextBlock Text="{Binding Id, StringFormat=' #{0}'}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                        <Border CornerRadius="3" Padding="5,0" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="{Binding SourceTooltip}"
+                                Visibility="{Binding HasSource, Converter={StaticResource BoolToVis}}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsDungeon}" Value="True">
+                                            <Setter Property="Background" Value="{StaticResource DungeonBackBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsShop}" Value="True">
+                                            <Setter Property="Background" Value="{StaticResource ShopBackBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding Source}" FontSize="10" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDungeon}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource DungeonBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsShop}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource ShopBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
                         <TextBlock Text="needs resync" Foreground="{StaticResource WarnBrush}" Margin="8,0,0,0" VerticalAlignment="Center"
                                    Visibility="{Binding NeedsResync, Converter={StaticResource BoolToVis}}"
                                    ToolTip="An update did not add up. The next login snapshot will fix it." />
@@ -222,21 +251,62 @@
 
             <StackPanel Grid.Row="0">
                 <DockPanel Margin="0,0,0,6">
+                    <ListBox DockPanel.Dock="Right" Style="{StaticResource Chips}" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}" VerticalAlignment="Center" />
+                    <TextBlock DockPanel.Dock="Right" Text="Sort" Style="{StaticResource Muted}" Margin="12,0,6,0" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Search by name, #id, genus or source (Dungeon / Shop)" />
+                </DockPanel>
+                <DockPanel Margin="0,0,0,4">
                     <Button DockPanel.Dock="Right" Content="clear filters" Command="{Binding ClearFiltersCommand}" Margin="8,0,0,0" />
                     <TextBlock DockPanel.Dock="Right" Text="{Binding ShownText}" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="8,0,0,0" />
-                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Search by name, #id or genus" />
+                    <ToggleButton Style="{StaticResource ExpandToggle}" IsChecked="{Binding FiltersExpanded}" Content="{Binding FiltersToggleText}"
+                                  HorizontalAlignment="Left" ToolTip="Show or hide the filters" />
                 </DockPanel>
-                <WrapPanel>
-                    <TextBlock Text="Genus" Style="{StaticResource Muted}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                    <ListBox Style="{StaticResource Chips}" ItemsSource="{Binding GenusOptions}" SelectedItem="{Binding SelectedGenus}" Margin="0,0,14,4" />
-                    <TextBlock Text="Level" Style="{StaticResource Muted}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                    <ListBox Style="{StaticResource Chips}" ItemsSource="{Binding LevelOptions}" SelectedItem="{Binding SelectedLevel}" Margin="0,0,14,4" />
-                    <ListBox Style="{StaticResource Chips}" ItemsSource="{Binding StateOptions}" SelectedItem="{Binding SelectedState}" Margin="0,0,14,4" />
-                    <CheckBox Content="has souls" IsChecked="{Binding HasSoulsOnly}" Margin="0,0,14,4" VerticalAlignment="Center" />
-                    <CheckBox Content="hide Special" IsChecked="{Binding HideSpecial}" Margin="0,0,14,4" VerticalAlignment="Center" ToolTip="Hide Special pets (cash shop / events) from the list" />
-                    <TextBlock Text="Sort" Style="{StaticResource Muted}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                    <ListBox Style="{StaticResource Chips}" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}" Margin="0,0,0,4" />
-                </WrapPanel>
+
+                <!-- filter panel: a label column and wrapping content cells -->
+                <Border Background="{StaticResource RowAltBrush}" CornerRadius="4" Padding="10,6,10,2" Margin="0,2,0,0"
+                        Visibility="{Binding FiltersExpanded, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.Resources>
+                            <Style x:Key="FilterLabel" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+                                <Setter Property="Margin" Value="0,0,10,4" />
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                            </Style>
+                        </Grid.Resources>
+
+                        <TextBlock Grid.Row="0" Text="Genus" Style="{StaticResource FilterLabel}" />
+                        <ListBox Grid.Row="0" Grid.Column="1" Style="{StaticResource Chips}" ItemsSource="{Binding GenusOptions}" SelectedItem="{Binding SelectedGenus}" Margin="0,0,0,4" />
+
+                        <TextBlock Grid.Row="1" Text="Source" Style="{StaticResource FilterLabel}" />
+                        <ListBox Grid.Row="1" Grid.Column="1" Style="{StaticResource Chips}" ItemsSource="{Binding SourceOptions}" SelectedItem="{Binding SelectedSource}" Margin="0,0,0,4"
+                                 ToolTip="Dungeon: drops only in dungeons (for example from bosses). Shop: only sold in a shop." />
+
+                        <TextBlock Grid.Row="2" Text="Level" Style="{StaticResource FilterLabel}" />
+                        <WrapPanel Grid.Row="2" Grid.Column="1">
+                            <ListBox Style="{StaticResource Chips}" ItemsSource="{Binding LevelOptions}" SelectedItem="{Binding SelectedLevel}" Margin="0,0,14,4" />
+                            <TextBlock Text="State" Style="{StaticResource FilterLabel}" />
+                            <ListBox Style="{StaticResource Chips}" ItemsSource="{Binding StateOptions}" SelectedItem="{Binding SelectedState}" Margin="0,0,0,4" />
+                        </WrapPanel>
+
+                        <TextBlock Grid.Row="3" Text="Options" Style="{StaticResource FilterLabel}" />
+                        <WrapPanel Grid.Row="3" Grid.Column="1">
+                            <CheckBox Content="has souls" IsChecked="{Binding HasSoulsOnly}" Margin="0,0,14,4" VerticalAlignment="Center" />
+                            <TextBlock Text="Hide:" Style="{StaticResource FilterLabel}" Margin="0,0,6,4" />
+                            <CheckBox Content="Special" IsChecked="{Binding HideSpecial}" Margin="0,0,10,4" VerticalAlignment="Center" ToolTip="Hide Special pets (cash shop / events) from the list" />
+                            <CheckBox Content="Dungeon" IsChecked="{Binding HideDungeon}" Margin="0,0,10,4" VerticalAlignment="Center" ToolTip="Hide Dungeon exclusive pets from the list" />
+                            <CheckBox Content="Shop" IsChecked="{Binding HideShop}" Margin="0,0,0,4" VerticalAlignment="Center" ToolTip="Hide Shop exclusive pets from the list" />
+                        </WrapPanel>
+                    </Grid>
+                </Border>
             </StackPanel>
 
             <!-- column headers; widths match the row template. The spacer reserves the list's (always visible)

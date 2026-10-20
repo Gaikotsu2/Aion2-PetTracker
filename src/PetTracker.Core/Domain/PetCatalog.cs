@@ -14,6 +14,7 @@ public sealed class PetCatalog
 {
     private readonly Dictionary<int, PetInfo> _base = [];
     private readonly Dictionary<int, PetInfo> _overrides = [];
+    private readonly Dictionary<int, string> _sources = []; // base only: maintained by hand in data/pets.json
     private readonly string? _overridesPath;
 
     public PetCatalog(string? overridesPath = null) => _overridesPath = overridesPath;
@@ -40,7 +41,11 @@ public sealed class PetCatalog
         foreach (var node in root as JsonArray ?? (root as JsonObject)?["pets"] as JsonArray ?? [])
         {
             if (node is JsonObject o && o["id"] is { } id)
+            {
                 _base[id.GetValue<int>()] = new PetInfo(id.GetValue<int>(), Str(o["name"]), Str(o["genus"]), Str(o["notes"]));
+                if (PetSource.Normalize(Str(o["source"])) is { } source)
+                    _sources[id.GetValue<int>()] = source;
+            }
         }
     }
 
@@ -86,6 +91,13 @@ public sealed class PetCatalog
 
     /// <summary>True for Special pets (cash shop / events / other non-gameplay sources).</summary>
     public bool IsSpecial(int id) => PetGenus.IsSpecial(GenusOf(id));
+
+    /// <summary>"Dungeon" or "Shop" for pets limited to one place (the "source" field in data/pets.json); null otherwise.</summary>
+    public string? SourceOf(int id) => _sources.GetValueOrDefault(id);
+
+    public bool IsDungeon(int id) => PetSource.IsDungeon(SourceOf(id));
+
+    public bool IsShop(int id) => PetSource.IsShop(SourceOf(id));
 
     /// <summary>Special pets are not part of the game's "Collection Status x/200".</summary>
     public bool CountsTowardCollection(int id) => PetGenus.CountsTowardCollection(GenusOf(id));

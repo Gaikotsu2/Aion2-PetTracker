@@ -38,6 +38,11 @@ public sealed class PetRowViewModel : ObservableObject
     public string Genus => _model.Catalog.GenusOf(Id) ?? _model.NameList.GenusFor(_model.Catalog.NameOf(Id)) ?? "";
     public bool IsSpecial => _model.Catalog.IsSpecial(Id);
     public string SpecialTooltip => PetGenus.SpecialTooltip;
+    public string Source => _model.Catalog.SourceOf(Id) ?? "";
+    public bool HasSource => Source.Length > 0;
+    public bool IsDungeon => _model.Catalog.IsDungeon(Id);
+    public bool IsShop => _model.Catalog.IsShop(Id);
+    public string? SourceTooltip => PetSource.TooltipFor(Source);
     public string LinkTooltip => "Open on TH.GL (aion2.th.gl) in your browser";
     public int Level => _state?.Level ?? 0;
     public string LevelText => Level > 0 ? $"L{Level}" : "-";
@@ -124,6 +129,11 @@ public sealed class PetRowViewModel : ObservableObject
         Raise(nameof(HasName));
         Raise(nameof(Genus));
         Raise(nameof(IsSpecial));
+        Raise(nameof(Source));
+        Raise(nameof(HasSource));
+        Raise(nameof(IsDungeon));
+        Raise(nameof(IsShop));
+        Raise(nameof(SourceTooltip));
     }
 
     public void RefreshSession() => Raise(nameof(SessionGains));
