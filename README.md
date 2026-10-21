@@ -170,6 +170,12 @@ app. Either add `-NoPublish` (when installing the ready-made download), or, when
 - [docs/RESEARCH-GUIDE.md](docs/RESEARCH-GUIDE.md) and [docs/RESEARCH-PCAPNG.md](docs/RESEARCH-PCAPNG.md): helping
   with research recordings.
 
+## Support the project (optional)
+
+Aion 2 Pet Tracker is free and open source under the MIT license. If you find it useful and want to say thanks, you
+can [leave a tip on Ko-fi](https://ko-fi.com/gaikotsu2). Tipping is entirely optional: every feature works exactly
+the same whether or not you tip, with no locked features, reminders or supporter perks.
+
 ## Credits and license
 
 Pet names and genera come from the community database [TH.GL](https://aion2.th.gl/db/pets).

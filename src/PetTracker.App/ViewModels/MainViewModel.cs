@@ -47,6 +47,7 @@ public sealed class MainViewModel : ObservableObject
         OpenDataFolderCommand = new RelayCommand(() => ExternalLinks.Open(model.Paths.Folder, model.Paths.Folder));
         OpenNpcapCommand = new RelayCommand(() => ExternalLinks.Open(ExternalLinks.NpcapUrl, model.Paths.Folder));
         OpenRepoCommand = new RelayCommand(() => ExternalLinks.Open(LinkPolicy.RepoUrl, model.Paths.Folder));
+        OpenKofiCommand = new RelayCommand(() => ExternalLinks.Open(LinkPolicy.KofiUrl, model.Paths.Folder));
         OpenOpcodesFileCommand = new RelayCommand(() => ExternalLinks.Open(model.Paths.Opcodes, model.Paths.Folder, model.Paths.Opcodes));
         SaveOpcodesCommand = new RelayCommand(SaveOpcodes);
         ResetOpcodesCommand = new RelayCommand(ResetOpcodes);
@@ -87,6 +88,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand OpenDataFolderCommand { get; }
     public ICommand OpenNpcapCommand { get; }
     public ICommand OpenRepoCommand { get; }
+    public ICommand OpenKofiCommand { get; }
     public ICommand ClearFiltersCommand { get; }
     public ICommand ResetSessionCommand { get; }
 

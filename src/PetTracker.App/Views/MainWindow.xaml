@@ -619,6 +619,17 @@
                         </Border>
                         <Border Style="{StaticResource SettingsCard}">
                             <StackPanel>
+                                <TextBlock Text="Support the project (optional)" Style="{StaticResource CardTitle}" />
+                                <TextBlock Style="{StaticResource CardHint}"
+                                           Text="Aion 2 Pet Tracker is free and open source. If you find it useful and want to say thanks, you can leave a tip on Ko-fi. Tipping is entirely optional: every feature works exactly the same whether or not you tip, with no locked features, reminders or supporter perks." />
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Content="Tip on Ko-fi &#x2197;" Command="{Binding OpenKofiCommand}" Margin="0,0,8,4" />
+                                </WrapPanel>
+                                <TextBlock Text="ko-fi.com/gaikotsu2" Style="{StaticResource CardHint}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
                                 <TextBlock Text="Legal" Style="{StaticResource CardTitle}" />
                                 <TextBlock Style="{StaticResource CardHint}"
                                            Text="Copyright &#x00A9; 2026 Gaikotsu2. Released under the MIT License (see the LICENSE file)." />
