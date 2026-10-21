@@ -28,12 +28,6 @@ build anything.
   - leave "Restrict Npcap driver's access to Administrators only" **unticked**.
 - [ ] **Aion 2 in Borderless Windowed mode** (game display settings), so the overlay can appear above the game.
 
-> [!WARNING]
-> **Smart App Control.** The app is not digitally signed. If Windows Smart App Control is turned on (Windows Security →
-> App & browser control), Windows refuses to run it, whether you downloaded it or built it yourself, and you will see
-> error `0x800711C7`. Windows offers no way to make an exception for a single program. See
-> [docs/TECHNICAL.md](docs/TECHNICAL.md#smart-app-control) for details.
-
 ## Install
 
 1. Install **Npcap** with the settings from the list above.
@@ -51,8 +45,8 @@ build anything.
    once. `-NoPublish` tells it to install the ready-made app instead of building it.
 5. Start **Aion 2 Pet Tracker** from the Start Menu.
 
-The first time it starts, Windows may show **"Windows protected your PC"**, because the app is new and unsigned. Click
-**More info** → **Run anyway**.
+The release is digitally signed (publisher: Matthew Brubaker), so it also runs on PCs with Windows Smart App Control
+turned on. To check, right-click `PetTracker.App.exe` → **Properties** → **Digital Signatures**.
 
 Prefer not to install? You can also run `artifacts\PetTracker\PetTracker.App.exe` straight from the extracted folder
 (keep the `data` folder next to it).
@@ -71,6 +65,12 @@ Prefer not to install? You can also run `artifacts\PetTracker\PetTracker.App.exe
    ```
 
    The first build takes a minute or two.
+
+> [!NOTE]
+> **Smart App Control.** A build you compile yourself is not digitally signed. If Windows Smart App Control is turned
+> on (Windows Security → App & browser control), Windows refuses to run it with error `0x800711C7`, and offers no way
+> to make an exception for a single program. Use the signed release download instead, or turn Smart App Control off. See
+> [docs/TECHNICAL.md](docs/TECHNICAL.md#smart-app-control).
 
 ## Using it
 
@@ -140,11 +140,9 @@ not, see [docs/PATCH-DAY.md](docs/PATCH-DAY.md), or wait for an update to this p
 **I use a VPN or ping reducer and nothing shows up.** In Settings → Capture, type part of the VPN adapter's name or its
 IP address into the adapter box.
 
-**Windows refuses to start the tracker (error `0x800711C7`).** That is Smart App Control; see
-[What you need](#what-you-need).
-
-**Windows says "Windows protected your PC".** That is SmartScreen being cautious about a new, unsigned app. Click
-**More info** → **Run anyway**.
+**Windows refuses to start the tracker (error `0x800711C7`).** You are running a build you compiled yourself, and
+Windows Smart App Control blocks unsigned programs; see [Build from source instead](#build-from-source-instead). The
+signed release download is not affected.
 
 **The install command fails with an error about `dotnet`.** You ran it without `-NoPublish`, so it tried to build the
 app. Either add `-NoPublish` (when installing the ready-made download), or, when building from source, install the .NET

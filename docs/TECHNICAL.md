@@ -101,9 +101,14 @@ event history (`events.jsonl`) is not included.
 
 ## Smart App Control
 
-On a PC with Smart App Control enforced, Windows refuses to run unsigned programs, which includes a freshly built
-tracker (error `0x800711C7`). Windows does not let you allow-list a single file, and the project's builds are not
-code-signed, so the tracker only runs on a PC where Smart App Control is off. For research work,
+The release downloads are signed with Azure Artifact Signing (a Public Trust certificate), so they run on a PC with
+Smart App Control enforced. A tracker you build from source is not signed: Windows refuses to run it (error
+`0x800711C7`) and does not let you allow-list a single file, so a self-built tracker only runs on a PC where Smart App
+Control is off.
+
+`scripts\publish.ps1 -Sign` signs our own binaries (`PetTracker.App.exe`, `pt-research.exe`, `PetTracker.*.dll`; never
+packaged third-party libraries). It needs an Azure login with the *Certificate Profile Signer* role on the account in
+`signing\metadata.json`, so only the project owner can produce signed builds. For research work,
 [RESEARCH-PCAPNG.md](RESEARCH-PCAPNG.md) describes a workaround with Wireshark's signed `dumpcap` and Windows Sandbox.
 
 ## After a game update

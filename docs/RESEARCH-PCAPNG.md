@@ -1,7 +1,7 @@
 # Research with Wireshark (pcapng workflow)
 
-`pt-research record` needs our own, unsigned, program to capture live traffic, and Windows Smart App Control may refuse to
-run it. When that happens you can still collect research data this way:
+`pt-research record` needs our own program (`pt-research`, which you build from source and which is therefore unsigned) to
+capture live traffic, and Windows Smart App Control may refuse to run it. When that happens you can still collect research data this way:
 
 1. **Record** the game's traffic with **Wireshark's `dumpcap`**. It is signed by the Wireshark Foundation, so Smart App Control
    allows it. The result is a `.pcapng` file.
