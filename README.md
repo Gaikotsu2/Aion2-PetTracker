@@ -18,38 +18,59 @@ This is an unofficial fan tool, not affiliated with or endorsed by NCSOFT.
 
 ## What you need
 
-There is no ready-made download yet, so your PC builds the app from this code during installation. That sounds
-harder than it is: you install two free tools once, then run one command.
+The app comes ready to run: download it from the
+[Releases page](https://github.com/Gaikotsu2/Aion2-PetTracker/releases/latest). You do not need to install .NET or
+build anything.
 
 - [ ] **Windows 11, 64-bit.**
-- [ ] **.NET 10 SDK** from Microsoft: <https://dotnet.microsoft.com/download/dotnet/10.0>. In the **SDK** column, pick
-      **Windows x64** under "Installers". This is what builds the app.
 - [ ] **Npcap**: <https://npcap.com>. This is what lets the app see the game's network traffic. During installation:
   - **tick** "Install Npcap in WinPcap API-compatible Mode",
   - leave "Restrict Npcap driver's access to Administrators only" **unticked**.
 - [ ] **Aion 2 in Borderless Windowed mode** (game display settings), so the overlay can appear above the game.
 
 > [!WARNING]
-> **Smart App Control.** If Windows Smart App Control is turned on (Windows Security → App & browser control), Windows
-> refuses to run programs you built yourself, and you will see error `0x800711C7`. Windows offers no way to make an
-> exception for a single program. See [docs/TECHNICAL.md](docs/TECHNICAL.md#smart-app-control) for details.
+> **Smart App Control.** The app is not digitally signed. If Windows Smart App Control is turned on (Windows Security →
+> App & browser control), Windows refuses to run it, whether you downloaded it or built it yourself, and you will see
+> error `0x800711C7`. Windows offers no way to make an exception for a single program. See
+> [docs/TECHNICAL.md](docs/TECHNICAL.md#smart-app-control) for details.
 
 ## Install
 
-1. Install the **.NET 10 SDK** and **Npcap** from the list above.
-2. Get the code: at the top of this page click the green **Code** button → **Download ZIP**, then right-click the
-   downloaded file → **Extract All**. (If you use Git, `git clone` works too.)
-3. Open the extracted folder (the one that contains `README.md` and a `scripts` folder). Right-click an empty spot in
+1. Install **Npcap** with the settings from the list above.
+2. On the [Releases page](https://github.com/Gaikotsu2/Aion2-PetTracker/releases/latest), under **Assets**, download
+   `Aion2-PetTracker-<version>-win-x64.zip`. Right-click the downloaded file → **Extract All**.
+3. Open the extracted folder (the one that contains `INSTALL.txt` and a `scripts` folder). Right-click an empty spot in
    the folder → **Open in Terminal**.
 4. Copy this line into the terminal and press Enter:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -NoPublish
+   ```
+
+   Windows blocks downloaded scripts by default; `-ExecutionPolicy Bypass` lets just this one script run, just this
+   once. `-NoPublish` tells it to install the ready-made app instead of building it.
+5. Start **Aion 2 Pet Tracker** from the Start Menu.
+
+The first time it starts, Windows may show **"Windows protected your PC"**, because the app is new and unsigned. Click
+**More info** → **Run anyway**.
+
+Prefer not to install? You can also run `artifacts\PetTracker\PetTracker.App.exe` straight from the extracted folder
+(keep the `data` folder next to it).
+
+### Build from source instead
+
+1. Install the **.NET 10 SDK** from Microsoft: <https://dotnet.microsoft.com/download/dotnet/10.0>. In the **SDK**
+   column, pick **Windows x64** under "Installers".
+2. Get the code: download `Aion2-PetTracker-<version>-source.zip` from the
+   [Releases page](https://github.com/Gaikotsu2/Aion2-PetTracker/releases/latest) (or the green **Code** button →
+   **Download ZIP**, or `git clone`) and extract it.
+3. Open a terminal in the extracted folder and run the install command **without** `-NoPublish`:
 
    ```powershell
    powershell -ExecutionPolicy Bypass -File scripts\install.ps1
    ```
 
-   Windows blocks downloaded scripts by default; `-ExecutionPolicy Bypass` lets just this one script run, just this
-   once. The first build takes a minute or two.
-5. Start **Aion 2 Pet Tracker** from the Start Menu.
+   The first build takes a minute or two.
 
 ## Using it
 
@@ -90,11 +111,13 @@ your clicks go to the game instead). Opacity, size and hotkeys are in Settings �
 
 ## Updating
 
-Download the new ZIP (or `git pull`) and run the same install command again. Your collection and settings are kept.
+Download the newest `win-x64` ZIP from the [Releases page](https://github.com/Gaikotsu2/Aion2-PetTracker/releases/latest),
+extract it, and run the same install command again. If you build from source, get the new code (or `git pull`) and run
+your install command again. Your collection and settings are kept.
 
 ## Uninstalling
 
-From the code folder, run:
+From the extracted folder, run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Uninstall
@@ -120,8 +143,12 @@ IP address into the adapter box.
 **Windows refuses to start the tracker (error `0x800711C7`).** That is Smart App Control; see
 [What you need](#what-you-need).
 
-**The install command fails with an error about `dotnet`.** The .NET 10 SDK is not installed, or the terminal was open
-before you installed it. Install the SDK, close the terminal, and open a new one.
+**Windows says "Windows protected your PC".** That is SmartScreen being cautious about a new, unsigned app. Click
+**More info** → **Run anyway**.
+
+**The install command fails with an error about `dotnet`.** You ran it without `-NoPublish`, so it tried to build the
+app. Either add `-NoPublish` (when installing the ready-made download), or, when building from source, install the .NET
+10 SDK, close the terminal, and open a new one.
 
 ## More technical information
 
