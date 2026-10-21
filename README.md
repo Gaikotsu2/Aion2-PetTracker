@@ -32,7 +32,10 @@ build anything.
 
 1. Install **Npcap** with the settings from the list above.
 2. On the [Releases page](https://github.com/Gaikotsu2/Aion2-PetTracker/releases/latest), under **Assets**, download
-   `Aion2-PetTracker-<version>-win-x64.zip`. Right-click the downloaded file → **Extract All**.
+   `Aion2-PetTracker-<version>-win-x64.zip`. Right-click the downloaded file → **Properties** → tick **Unblock** →
+   **OK** (if you see no such box, skip this), then right-click it again → **Extract All**. Unblocking first keeps
+   Windows from tagging every extracted file as "from the internet", which makes Smart App Control block shortcuts
+   (such as a taskbar pin) made from the app.
 3. Open the extracted folder (the one that contains `INSTALL.txt` and a `scripts` folder). Right-click an empty spot in
    the folder → **Open in Terminal**.
 4. Copy this line into the terminal and press Enter:
@@ -143,6 +146,16 @@ IP address into the adapter box.
 **Windows refuses to start the tracker (error `0x800711C7`).** You are running a build you compiled yourself, and
 Windows Smart App Control blocks unsigned programs; see [Build from source instead](#build-from-source-instead). The
 signed release download is not affected.
+
+**Windows blocks `PetTracker.lnk` ("dangerous file extension from the web").** The shortcut, not the app, was
+blocked: Smart App Control refuses any shortcut tagged as "from the internet", and a taskbar pin made from an app that
+came out of a downloaded zip gets that tag. Unpin the shortcut, run the install command again (it removes the tag from
+the installed app and from shortcuts that point at it), and pin again from the Start Menu entry **Aion 2 Pet Tracker**.
+Or run this in a terminal, then pin again:
+
+```powershell
+Get-ChildItem "$env:LOCALAPPDATA\Programs\Aion2PetTracker" -Recurse | Unblock-File
+```
 
 **The install command fails with an error about `dotnet`.** You ran it without `-NoPublish`, so it tried to build the
 app. Either add `-NoPublish` (when installing the ready-made download), or, when building from source, install the .NET

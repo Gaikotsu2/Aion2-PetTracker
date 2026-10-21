@@ -106,6 +106,12 @@ Smart App Control enforced. A tracker you build from source is not signed: Windo
 `0x800711C7`) and does not let you allow-list a single file, so a self-built tracker only runs on a PC where Smart App
 Control is off.
 
+Smart App Control also blocks any `.lnk` file that carries the "downloaded from the internet" marker (Mark of the Web,
+the `Zone.Identifier` stream), whatever the signature of the program it points to, with the message "dangerous file
+extension from the web". Extracting a downloaded zip tags the app, and Windows copies that tag onto shortcuts made from
+it, such as a taskbar pin. `scripts\install.ps1` therefore runs `Unblock-File` on the installed files and on shortcuts
+that point at them.
+
 `scripts\publish.ps1 -Sign` signs our own binaries (`PetTracker.App.exe`, `pt-research.exe`, `PetTracker.*.dll`; never
 packaged third-party libraries). It needs an Azure login with the *Certificate Profile Signer* role on the account in
 `signing\metadata.json`, so only the project owner can produce signed builds. For research work,

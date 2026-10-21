@@ -8,6 +8,8 @@
     2. runs scripts\publish.ps1 (skip with -NoPublish to reuse artifacts\PetTracker),
     3. copies it to %LOCALAPPDATA%\Programs\Aion2PetTracker\,
     4. creates a Start Menu shortcut "Aion 2 Pet Tracker".
+    5. removes the "downloaded from the internet" marker from the installed files and from shortcuts that point at them
+       (so Smart App Control does not block a taskbar pin made from the exe).
   Your data in %AppData%\Aion2PetTracker (collection, history, settings, pet names, opcodes.json) is never touched.
   Updating = running this script again.
 
@@ -105,6 +107,37 @@ function New-StartMenuShortcut {
     }
 }
 
+# A downloaded zip puts a "from the internet" marker (Mark of the Web) on every file extracted from it, and copying keeps it.
+# Windows then copies that marker onto shortcuts made from the exe (for example "Pin to taskbar"), and Smart App Control
+# blocks any .lnk carrying it ("dangerous file extension from the web"), however well the exe itself is signed.
+# So the installed files, and any shortcut already pointing at them, are unblocked. Only our own files are touched.
+function Unblock-InstalledFiles {
+    if (-not $PSCmdlet.ShouldProcess($installDir, 'Remove the downloaded-from-the-internet marker from the installed files and their shortcuts')) { return }
+
+    Get-ChildItem -LiteralPath $installDir -Recurse -File | Unblock-File
+
+    $shortcutDirs = @(
+        (Join-Path $env:APPDATA 'Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar'),
+        (Join-Path $env:APPDATA 'Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu'),
+        (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'),
+        [Environment]::GetFolderPath('Desktop')
+    )
+    $shell = New-Object -ComObject WScript.Shell
+    try {
+        foreach ($dir in $shortcutDirs) {
+            if (-not (Test-Path -LiteralPath $dir)) { continue }
+            foreach ($lnk in @(Get-ChildItem -LiteralPath $dir -Filter '*.lnk' -File -ErrorAction SilentlyContinue)) {
+                if ($shell.CreateShortcut($lnk.FullName).TargetPath -ieq $installedExe) {
+                    Unblock-File -LiteralPath $lnk.FullName
+                }
+            }
+        }
+    }
+    finally {
+        [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell)
+    }
+}
+
 if ($Uninstall) {
     Stop-RunningTracker
     if (Test-Path -LiteralPath $installDir) {
@@ -164,6 +197,7 @@ if ($PSCmdlet.ShouldProcess($installDir, "Copy $source")) {
 }
 
 New-StartMenuShortcut
+if (Test-Path -LiteralPath $installDir) { Unblock-InstalledFiles }
 
 Write-Host ''
 if ($WhatIfPreference) { Write-Host "Dry run: nothing was changed." ; return }
