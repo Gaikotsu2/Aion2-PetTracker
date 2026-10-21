@@ -18,6 +18,10 @@
 .PARAMETER ResearchOnly
   Publish only pt-research (this is what publish-research.ps1 does).
 
+.PARAMETER Sign
+  Sign our own binaries (PetTracker.App.exe, pt-research.exe, PetTracker.*.dll) with Azure Artifact Signing after
+  publishing, via scripts\sign.ps1. Needs `az login`. Packaged third-party libraries are never signed.
+
 .PARAMETER ExtraArgs
   Passed to every dotnet publish, for example -p:Version=0.2.0.
 #>
@@ -26,6 +30,7 @@ param(
     [switch]$SelfContained,
     [switch]$SkipResearch,
     [switch]$ResearchOnly,
+    [switch]$Sign,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$ExtraArgs
 )
@@ -88,6 +93,13 @@ function Publish-Research {
 
 if (-not $ResearchOnly) { Publish-App }
 if ($ResearchOnly -or -not $SkipResearch) { Publish-Research }
+
+if ($Sign) {
+    $toSign = @()
+    if (-not $ResearchOnly) { $toSign += $appOut }
+    if ($ResearchOnly -or -not $SkipResearch) { $toSign += $researchOut }
+    & (Join-Path $PSScriptRoot 'sign.ps1') -Path $toSign
+}
 
 Write-Host ""
 Write-Host "Published:"
