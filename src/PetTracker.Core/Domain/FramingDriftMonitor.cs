@@ -34,6 +34,14 @@ public sealed class FramingDriftMonitor(int threshold = 5, TimeSpan? window = nu
         return true;
     }
 
+    /// <summary>The running total fell (flows that only produced noise were dropped): forget the suspicion and count again from here.</summary>
+    public void Rebase(long desyncTotal)
+    {
+        _events.Clear();
+        _last = desyncTotal;
+        Suspected = false;
+    }
+
     public void Reset()
     {
         _events.Clear();

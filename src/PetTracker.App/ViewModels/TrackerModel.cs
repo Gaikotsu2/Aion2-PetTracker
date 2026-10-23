@@ -453,6 +453,7 @@ public sealed class TrackerModel : ObservableObject, IDisposable
             sb.AppendLine($"counters        : packets {s.Packets}, s2c bytes {s.BytesS2C}, frames {s.Frames} (inner {s.InnerFrames}, bundles {s.Bundles}), " +
                           $"heartbeats {s.Heartbeats}, desyncs {s.Desyncs}, gaps {s.Gaps}, flows rejected {s.FlowsRejected}");
             sb.AppendLine($"game connections: {s.Connections.Count}; active flow {s.ActiveFlowId?.ToString() ?? "none"}");
+            sb.AppendLine($"relay-like flows: {s.Relay.Describe()}");
         }
         else
         {
@@ -469,6 +470,9 @@ public sealed class TrackerModel : ObservableObject, IDisposable
     // --- framing drift --------------------------------------------------------------------------------------------
 
     /// <summary>Extra status-tooltip line when desyncs keep coming (the frame format may have changed), else null.</summary>
+    /// <summary>Parallel heartbeat-only connections seen (a ping reducer or VPN), or the default value when none.</summary>
+    public RelayInfo Relay => _pipeline?.Status.Relay ?? default;
+
     public string? FramingHint => _drift.Suspected ? FramingDriftMonitor.Hint : null;
 
     public string StatusTooltip => _drift.Suspected
@@ -580,7 +584,22 @@ public sealed class TrackerModel : ObservableObject, IDisposable
             else
                 _firstHeartbeat = null;
             if (s.Desyncs > _lastDesyncs)
+            {
                 _lastDesyncAt = now;
+            }
+            else if (s.Desyncs < _lastDesyncs && s.Relay.Healthy)
+            {
+                // Relay-like flows were dropped because the game data decodes cleanly elsewhere: their desyncs no longer count.
+                _lastDesyncAt = DateTime.MinValue;
+                var wasSuspected = _drift.Suspected;
+                _drift.Rebase(s.Desyncs);
+                DiagLog.Info("Status", $"desync count fell to {s.Desyncs} after dropping relay-like flows; desync warning cleared");
+                if (wasSuspected)
+                {
+                    Raise(nameof(StatusTooltip));
+                    Raise(nameof(FramingHint));
+                }
+            }
             _lastDesyncs = s.Desyncs;
             if (_drift.Observe(s.Desyncs, now))
             {

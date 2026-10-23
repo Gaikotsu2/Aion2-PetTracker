@@ -37,7 +37,8 @@ public sealed record PipelineStatus(
     string? Error,
     long Bundles = 0,
     long InnerFrames = 0,
-    long FlowsRejected = 0);
+    long FlowsRejected = 0,
+    RelayInfo Relay = default);
 
 /// <summary>Capture, reassembly and framing on one background thread, fed through a channel.</summary>
 public sealed class Pipeline : IDisposable
@@ -87,7 +88,7 @@ public sealed class Pipeline : IDisposable
                 : "Waiting for AION2";
             return new PipelineStatus(phase, _connections, _source.Description, _source.PacketsSeen, Interlocked.Read(ref _bytes),
                 s.Frames, s.Desyncs, _flows.Gaps, s.Heartbeats, _processor.ActiveFlowId, _error,
-                s.Bundles, s.InnerFrames, s.FlowsRejected);
+                s.Bundles, s.InnerFrames, s.FlowsRejected, _processor.Relay);
         }
     }
 
@@ -191,13 +192,18 @@ public sealed class Pipeline : IDisposable
                 DiagLog.Info("Flow", summary);
             }
         }
+        if (s.Relay.Detected && s.Relay.Describe() is var relay && relay != _lastRelayLine)
+        {
+            _lastRelayLine = relay;
+            DiagLog.Info("Network", relay);
+        }
         if (Opcodes.TakeReport(OpcodeName) is { } opcodes)
             DiagLog.Info("Opcodes", opcodes);
     }
 
     private static readonly TimeSpan StatsInterval = TimeSpan.FromSeconds(30);
     private DateTime _lastStatsLog = DateTime.UtcNow;
-    private string? _lastStatsLine;
+    private string? _lastStatsLine, _lastRelayLine;
     private readonly Dictionary<int, string> _flowLines = [];
 
     /// <summary>Frame counts per opcode seen on the game stream (numbers only); the app adds names for known opcodes.</summary>

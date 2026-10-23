@@ -629,6 +629,10 @@
                                                                     <Setter Property="Background" Value="{StaticResource GoodBackBrush}" />
                                                                     <Setter Property="BorderBrush" Value="{StaticResource GoodBrush}" />
                                                                 </DataTrigger>
+                                                                <DataTrigger Binding="{Binding LevelName}" Value="Info">
+                                                                    <Setter Property="Background" Value="{StaticResource InfoBackBrush}" />
+                                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                                </DataTrigger>
                                                                 <DataTrigger Binding="{Binding LevelName}" Value="Warn">
                                                                     <Setter Property="Background" Value="{StaticResource WarnBackBrush}" />
                                                                     <Setter Property="BorderBrush" Value="{StaticResource WarnBrush}" />

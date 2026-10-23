@@ -9,7 +9,23 @@ public enum FlowClass { Unknown, Game, Tls }
 /// <summary>One flow as the processor saw it. Endpoints is the raw detail of the FlowOpened/FlowJoined event ("src -> dst").</summary>
 public sealed record FlowSummary(
     int FlowId, string? Endpoints, bool SawSyn, long Bytes, FlowClass Class, bool Rejected,
-    long Frames, long Heartbeats, long Desyncs, string? Reason);
+    long Frames, long Heartbeats, long Desyncs, string? Reason, bool RelayLike = false);
+
+/// <summary>
+/// Parallel connections that carry only the game's heartbeat plus bytes that do not parse, and are not the game's own
+/// connection: typical of a ping reducer or VPN that opens tunnel connections of its own. Identical says their byte counts
+/// match (one stream sent over several routes); Healthy says another flow decodes real game frames, so these are ignored.
+/// </summary>
+public readonly record struct RelayInfo(int Flows, bool Identical, bool Healthy)
+{
+    public bool Detected => Flows >= 2;
+
+    public string Describe() => Detected
+        ? $"{Flows} parallel heartbeat-only flows{(Identical ? " with matching byte counts" : "")}; " +
+          (Healthy ? "ignored, the game data decodes on another flow" : "no other flow is decoding game data yet") +
+          "; a ping reducer or VPN is likely active"
+        : "none";
+}
 
 /// <summary>
 /// Turns the .a2cap record stream (live or replayed) into frames: one <see cref="FrameDecoder"/> per flow,
@@ -22,6 +38,10 @@ public sealed class StreamProcessor(FrameDecoderOptions? options = null, int pro
     public const int DefaultProbeBytes = 4096;
     /// <summary>Flows that joined mid-stream scan for a heartbeat first, so they get a larger budget.</summary>
     public const int ScanProbeBytes = 256 * 1024;
+    /// <summary>Heartbeats a flow must show before it can be called relay-like, and frames beyond heartbeats before it is called healthy.</summary>
+    public const int RelayMinHeartbeats = 20;
+    public const int HealthyMinFrames = 20;
+    private const string StartRejection = "no valid frame at the start of the stream";
 
     private sealed class FlowState
     {
@@ -33,6 +53,7 @@ public sealed class StreamProcessor(FrameDecoderOptions? options = null, int pro
         public FlowClass Class;
         public bool Rejected;
         public bool Confirmed;
+        public bool Relay;
         public string? Reason;
         public FrameDecoder? Decoder;
         public DecoderStats Stats = new();
@@ -65,8 +86,21 @@ public sealed class StreamProcessor(FrameDecoderOptions? options = null, int pro
     {
         var f = kv.Value;
         return new FlowSummary(kv.Key, f.Endpoints, f.SawSyn, f.Bytes, f.Class, f.Rejected,
-            f.Stats.Frames, f.Stats.Heartbeats, f.Stats.Desyncs, f.Reason);
+            f.Stats.Frames, f.Stats.Heartbeats, f.Stats.Desyncs, f.Reason, f.Relay);
     }).ToList();
+
+    /// <summary>The relay-like flows seen so far (kept after they are dropped, so the report can still describe them).</summary>
+    public RelayInfo Relay
+    {
+        get
+        {
+            var bytes = _flows.Values.Where(f => f.Relay || f.Reason == StartRejection).Select(f => f.Bytes).ToList();
+            if (bytes.Count < 2 || !_flows.Values.Any(f => f.Relay) && !_flows.Values.Any(IsHealthy))
+                return default;
+            var spread = bytes.Max() - bytes.Min();
+            return new RelayInfo(bytes.Count, spread <= Math.Max(256, bytes.Max() / 100), _flows.Values.Any(IsHealthy));
+        }
+    }
 
     /// <summary>TLS record header: content type 0x14-0x17, major version 3, minor version 1-4.</summary>
     public static bool LooksLikeTls(ReadOnlySpan<byte> head) =>
@@ -135,7 +169,7 @@ public sealed class StreamProcessor(FrameDecoderOptions? options = null, int pro
             {
                 if (flow.Strict)
                 {
-                    Reject(flow, FlowClass.Unknown, "no valid frame at the start of the stream");
+                    Reject(flow, FlowClass.Unknown, StartRejection);
                     return null;
                 }
                 // Joined mid-stream: the decoder is already scanning for a heartbeat; that is not a desync.
@@ -149,12 +183,38 @@ public sealed class StreamProcessor(FrameDecoderOptions? options = null, int pro
             }
         }
 
+        IgnoreRelayFlows();
         if (frames.Count > 0 && !flow.Rejected)
         {
             ActiveFlowId = chunk.FlowId;
             return new DecodedFrames(chunk.Ticks, chunk.FlowId, frames);
         }
         return null;
+    }
+
+    private static bool IsHealthy(FlowState f) =>
+        !f.Rejected && f.Confirmed && f.Stats.Frames - f.Stats.Heartbeats >= HealthyMinFrames && f.Stats.Desyncs <= f.Stats.Frames / 20;
+
+    /// <summary>Only heartbeats decode, and nearly every heartbeat is followed by bytes that do not parse.</summary>
+    private static bool IsRelayLike(FlowState f) =>
+        !f.Rejected && f.Confirmed && f.Stats.Frames == f.Stats.Heartbeats && f.Stats.Heartbeats >= RelayMinHeartbeats
+        && f.Stats.Desyncs >= f.Stats.Heartbeats - 1;
+
+    /// <summary>
+    /// Once a flow decodes real game frames, flows that are relay-like are dropped so their endless desyncs do not hide a
+    /// working tracker. Before any flow is healthy nothing is dropped: a real framing change looks the same on a single flow.
+    /// </summary>
+    private void IgnoreRelayFlows()
+    {
+        if (!_flows.Values.Any(IsHealthy))
+            return;
+        foreach (var f in _flows.Values)
+        {
+            if (!IsRelayLike(f))
+                continue;
+            Reject(f, FlowClass.Unknown, "heartbeat-only stream that does not parse (relay-like); another flow carries the game data");
+            f.Relay = true;
+        }
     }
 
     private void Reject(FlowState flow, FlowClass kind, string reason)

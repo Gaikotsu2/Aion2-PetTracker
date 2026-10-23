@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Input;
 using PetTracker.App.Infrastructure;
 using PetTracker.Core.Diagnostics;
+using PetTracker.Core.Protocol;
 using PetTracker.Core.Domain;
 
 namespace PetTracker.App.ViewModels;
@@ -85,8 +86,17 @@ public sealed class DiagnosticsViewModel : ObservableObject
             capture is null ? new("Game data", "None", ChipLevel.Neutral)
                 : capture.Heartbeats > 0 ? new("Game data", "Receiving", ChipLevel.Good)
                 : new("Game data", "None yet", ChipLevel.Neutral),
+            RelayChip(_model.Relay),
         ];
     }
+
+    private static StatusChip RelayChip(RelayInfo relay) =>
+        !relay.Detected ? new("Network", "No relays seen", ChipLevel.Neutral)
+        : relay.Healthy ? new("Network", "Relays ignored", ChipLevel.Info,
+            $"{relay.Flows} extra heartbeat-only connections{(relay.Identical ? " with matching byte counts" : "")}: a ping reducer or VPN seems to be active. " +
+            "The tracker ignores them and reads the game's own connection, so the Desync label does not apply to them.")
+        : new("Network", "Relays seen", ChipLevel.Warn,
+            $"{relay.Flows} extra heartbeat-only connections (a ping reducer or VPN seems to be active). Log in to a character so the tracker can find the game's own connection.");
 
     private static string Redacted(string text) => DiagLog.Sanitizer?.Sanitize(text) ?? text;
 
@@ -132,7 +142,7 @@ public sealed class DiagnosticsViewModel : ObservableObject
     }
 }
 
-public enum ChipLevel { Neutral, Good, Warn, Bad }
+public enum ChipLevel { Neutral, Good, Info, Warn, Bad }
 
 /// <summary>One row of the status card: a label and a colored chip. Level is a string so XAML triggers can match it.</summary>
 public sealed record StatusChip(string Label, string Text, ChipLevel Level, string? Detail = null)

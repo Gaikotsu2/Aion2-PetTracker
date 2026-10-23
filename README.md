@@ -145,6 +145,12 @@ not, see [docs/PATCH-DAY.md](docs/PATCH-DAY.md), or wait for an update to this p
 **I use a VPN or ping reducer and nothing shows up.** In Settings → Capture, type part of the VPN adapter's name or its
 IP address into the adapter box.
 
+**I use a ping reducer or VPN (such as ExitLag) and the status says "Desync".** These tools open extra connections
+that carry only the game's heartbeat. The tracker ignores them as soon as it sees the game's own connection, which
+appears when you log in to a character, and reads the game data from that one. The ping reducer's capture-mode setting
+makes no difference. Log in (or log in again) with the tracker running and the status changes to "Snapshot loaded".
+Settings → Diagnostics shows a **Network** line (a blue "Relays ignored" chip) when it has seen this.
+
 **Windows refuses to start the tracker (error `0x800711C7`).** You are running a build you compiled yourself, and
 Windows Smart App Control blocks unsigned programs; see [Build from source instead](#build-from-source-instead). The
 signed release download is not affected.

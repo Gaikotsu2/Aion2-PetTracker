@@ -22,6 +22,7 @@
     <SolidColorBrush x:Key="GoodBackBrush" Color="#334CC38A" />
     <SolidColorBrush x:Key="WarnBackBrush" Color="#33E5B341" />
     <SolidColorBrush x:Key="BadBackBrush" Color="#33E5606A" />
+    <SolidColorBrush x:Key="InfoBackBrush" Color="#334EA1FF" />
     <SolidColorBrush x:Key="BarBackBrush" Color="#55000000" />
     <SolidColorBrush x:Key="InputBrush" Color="#FF0F1217" />
     <SolidColorBrush x:Key="MenuHoverBrush" Color="#334EA1FF" />
