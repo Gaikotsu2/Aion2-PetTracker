@@ -4,6 +4,7 @@ using System.Windows.Threading;
 using PetTracker.App.Infrastructure;
 using PetTracker.App.ViewModels;
 using PetTracker.App.Views;
+using PetTracker.Core.Diagnostics;
 using PetTracker.Core.Persistence;
 using PetTracker.Core.Startup;
 
@@ -31,10 +32,14 @@ public partial class App : Application
         var paths = AppPaths.For(options.DataFolder);
         var autoExitSeconds = options.ExitAfterSeconds;
 
+        if (!options.Quit)
+            StartDiagnostics(paths, options);
+
         // One tracker per data folder: a later launch asks the first to show its window (or quit) and leaves.
         _guard = new SingleInstanceGuard(SingleInstanceGuard.KeyFor(paths.Folder));
         if (!_guard.IsFirst)
         {
+            DiagLog.Info("App", "another instance already runs on this data folder; asked it to " + (options.Quit ? "quit" : options.Minimized ? "stay as it is" : "show its window"));
             if (options.Quit)
                 _guard.SignalQuit();
             else if (!options.Minimized)
@@ -84,6 +89,30 @@ public partial class App : Application
             exit.Tick += (_, _) => Quit();
             exit.Start();
         }
+    }
+
+    /// <summary>Opens the diagnostics log, writes the session header and hooks every unhandled-exception path into it.</summary>
+    private void StartDiagnostics(AppPaths paths, StartupOptions options)
+    {
+        DiagLog.Start(paths.Logs);
+        DiagLog.Info("App", "==== session start ====");
+        foreach (var line in DiagEnvironment.Describe())
+            DiagLog.Info("Env", line);
+        DiagLog.Info("App", $"options: custom data folder {options.DataFolder is not null}, minimized {options.Minimized}, auto-exit {options.ExitAfterSeconds} s; " +
+                            "IP addresses appear as ip#N tokens and names/paths are redacted in this log");
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            DiagLog.Error("Unhandled", $"AppDomain exception (terminating: {e.IsTerminating})", e.ExceptionObject as Exception);
+            DiagLog.Flush();
+        };
+        TaskScheduler.UnobservedTaskException += (_, e) => DiagLog.Error("Unhandled", "unobserved task exception", e.Exception);
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        DiagLog.Info("App", $"exit (code {e.ApplicationExitCode})");
+        DiagLog.Stop();
+        base.OnExit(e);
     }
 
     private string? ApplyHotkeys(string? toggleOverlay, string? toggleClickThrough)
@@ -202,6 +231,8 @@ public partial class App : Application
 
     private void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
+        DiagLog.Error("Unhandled", "UI-thread exception; the app will exit", e.Exception);
+        DiagLog.Flush();
         try
         {
             var folder = _model?.Paths.Folder ?? AppPaths.DefaultFolder;

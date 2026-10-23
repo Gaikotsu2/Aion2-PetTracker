@@ -1,4 +1,5 @@
 using System.Net;
+using PetTracker.Core.Diagnostics;
 using SharpPcap;
 using SharpPcap.LibPcap;
 
@@ -41,7 +42,10 @@ public sealed class NpcapSource(string? adapterOverride = null, IEnumerable<int>
     public static void EnsureAvailable()
     {
         if (GetDevices().Count == 0)
+        {
+            DiagLog.Error("Capture", "Npcap loaded but lists no capture devices");
             throw new NpcapNotAvailableException($"No capture adapters were found. {NpcapNotAvailableException.InstallHint}");
+        }
     }
 
     /// <summary>Opens the adapters. Safe to call again; it does nothing once capturing.</summary>
@@ -54,6 +58,7 @@ public sealed class NpcapSource(string? adapterOverride = null, IEnumerable<int>
 
             var devices = SelectDevices();
             var filter = BuildFilter(_excluded);
+            DiagLog.Info("Capture", $"opening {devices.Count} adapter(s); filter: {filter}");
             foreach (var device in devices)
                 Open(device, filter);
 
@@ -64,6 +69,15 @@ public sealed class NpcapSource(string? adapterOverride = null, IEnumerable<int>
     private List<LibPcapLiveDevice> SelectDevices()
     {
         var all = GetDevices();
+        DiagLog.Info("Capture", $"{all.Count} capture device(s) listed by Npcap; adapter override {(string.IsNullOrWhiteSpace(adapterOverride) ? "not set" : "set")}");
+        foreach (var d in all)
+        {
+            var addresses = AddressesOf(d);
+            DiagLog.Info("Capture", $"  device '{d.Description ?? d.Interface?.FriendlyName ?? "?"}': " +
+                $"{addresses.Count(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)} IPv4, " +
+                $"{addresses.Count(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)} IPv6, loopback {addresses.Any(IPAddress.IsLoopback)}");
+        }
+
         if (!string.IsNullOrWhiteSpace(adapterOverride))
         {
             var forced = all.Where(d => MatchesOverride(d, adapterOverride)).ToList();
@@ -97,9 +111,11 @@ public sealed class NpcapSource(string? adapterOverride = null, IEnumerable<int>
             _locals[device.Name] = AddressesOf(device).ToHashSet();
             device.StartCapture();
             _open.Add(device);
+            DiagLog.Info("Capture", $"  capturing on '{device.Description ?? device.Name}' (link type {device.LinkType})");
         }
         catch (Exception ex) when (ex is PcapException or DllNotFoundException or InvalidOperationException)
         {
+            DiagLog.Error("Capture", $"could not open adapter '{device.Description ?? device.Name}'", ex);
             device.OnPacketArrival -= OnPacket;
             throw new NpcapNotAvailableException($"Could not open adapter '{device.Description ?? device.Name}': {ex.Message}", ex);
         }
@@ -145,6 +161,7 @@ public sealed class NpcapSource(string? adapterOverride = null, IEnumerable<int>
         }
         catch (Exception ex) when (ex is DllNotFoundException or TypeInitializationException or BadImageFormatException or PcapException or EntryPointNotFoundException)
         {
+            DiagLog.Error("Capture", "Npcap could not be loaded", ex);
             throw new NpcapNotAvailableException($"Npcap is not installed or could not be loaded. {NpcapNotAvailableException.InstallHint}", ex);
         }
     }

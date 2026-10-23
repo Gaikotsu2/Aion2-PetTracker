@@ -598,7 +598,100 @@
                                     <TextBlock Text="{Binding DataFolder}" VerticalAlignment="Center" Style="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
                                 </DockPanel>
                                 <TextBlock Style="{StaticResource CardHint}" Margin="0,6,0,0"
-                                           Text="collection.json, events.jsonl, settings.json, pet-names.json (your own pet names) and the backups folder live here." />
+                                           Text="collection.json, events.jsonl, settings.json, pet-names.json (your own pet names), the backups folder and the logs folder (diagnostic logs, kept 3 days) live here." />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Diagnostics -->
+                    <StackPanel Visibility="{Binding SelectedSettingsSection, Converter={StaticResource SectionVis}, ConverterParameter=Diagnostics}">
+                        <TextBlock Text="Diagnostics" Style="{StaticResource SectionTitle}" />
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <TextBlock Text="What the tracker sees right now" Style="{StaticResource CardTitle}" />
+                                <ItemsControl ItemsSource="{Binding Diagnostics.Chips}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="110" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Label}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                                                <Border Grid.Column="1" MinWidth="130" CornerRadius="10" Padding="10,2" BorderThickness="1">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="{StaticResource RowBrush}" />
+                                                            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDim}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding LevelName}" Value="Good">
+                                                                    <Setter Property="Background" Value="{StaticResource GoodBackBrush}" />
+                                                                    <Setter Property="BorderBrush" Value="{StaticResource GoodBrush}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding LevelName}" Value="Warn">
+                                                                    <Setter Property="Background" Value="{StaticResource WarnBackBrush}" />
+                                                                    <Setter Property="BorderBrush" Value="{StaticResource WarnBrush}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding LevelName}" Value="Bad">
+                                                                    <Setter Property="Background" Value="{StaticResource BadBackBrush}" />
+                                                                    <Setter Property="BorderBrush" Value="{StaticResource BadBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding Text}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                </Border>
+                                                <TextBlock Grid.Column="2" Text="{Binding Detail}" Style="{StaticResource CardHint}" Margin="10,0,0,0"
+                                                           VerticalAlignment="Center" TextWrapping="Wrap" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <TextBlock Text="Getting help: send a diagnostic report" Style="{StaticResource CardTitle}" />
+                                <TextBlock Style="{StaticResource CardHint}" TextWrapping="Wrap"
+                                           Text="1. Start the game and leave the tracker running while the problem happens (log in and wait a minute or two). If it stays empty, that is the most useful case to capture.&#x0A;2. Click Save report... below.&#x0A;3. Attach the saved .txt file to your support request, or paste it with Copy report." />
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Content="Save report..." Command="{Binding Diagnostics.SaveReportCommand}" Margin="0,0,8,4" />
+                                    <Button Content="Copy report" Command="{Binding Diagnostics.CopyReportCommand}" Margin="0,0,8,4" />
+                                    <Button Content="Open logs folder" Command="{Binding Diagnostics.OpenLogsFolderCommand}" Margin="0,0,8,4" />
+                                    <Button Content="Clear logs" Command="{Binding Diagnostics.ClearLogsCommand}" Margin="0,0,8,4" />
+                                </WrapPanel>
+                                <TextBlock Text="{Binding Diagnostics.Message}" TextWrapping="Wrap">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource CardHint}">
+                                            <Setter Property="Foreground" Value="{StaticResource GoodBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Diagnostics.MessageIsError}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource BadBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <TextBlock Text="Your privacy" Style="{StaticResource CardTitle}" />
+                                <TextBlock Style="{StaticResource CardHint}" TextWrapping="Wrap"
+                                           Text="The log holds technical events only: versions, Npcap and adapter checks, whether the game was found, connection and decoder counters, and opcode numbers. It never contains packet contents, pet names, account or character data. IP addresses are replaced by tokens like ip#1(public), and your Windows user name, computer name and profile folders are removed. Nothing is sent anywhere: you decide whether to share the file. Log files older than 3 days are deleted automatically." />
+                                <TextBlock Text="{Binding Diagnostics.LogsFolder}" Style="{StaticResource Muted}" TextTrimming="CharacterEllipsis" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding Diagnostics.RefreshCommand}" />
+                                    <TextBlock Text="Log preview (latest lines, exactly what a report contains)" Style="{StaticResource CardTitle}" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBox Text="{Binding Diagnostics.Preview, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="11"
+                                         Height="220" Margin="0,8,0,0" TextWrapping="NoWrap" AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

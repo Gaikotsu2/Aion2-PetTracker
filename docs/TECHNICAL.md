@@ -64,7 +64,12 @@ The data folder holds:
 - `settings.json`: overlay look, hotkeys, adapter override, pins and other settings,
 - `pet-names.json`: your own pet names, which always win over the shipped catalog,
 - `opcodes.json`: opcode overrides made in Settings → Opcodes,
-- `backups\`: the state saved automatically before every PetSouls import or backup restore.
+- `backups\`: the state saved automatically before every PetSouls import or backup restore,
+- `logs\`: diagnostic text logs (`pettracker-yyyyMMdd.log`, one per UTC day, at most 3 days kept, 5 MB per day).
+  They hold technical events only (versions, Npcap/adapter checks, game found or not, decoder counters, opcode numbers).
+  IP addresses are replaced by `ip#N` tokens and the Windows user name, computer name and profile folders are removed
+  before anything is written; packet contents, pet names and account data are never logged. Settings → Diagnostics
+  builds one report file from them.
 
 **Start with Windows** (Settings → General) adds one value, `Aion2PetTracker`, under
 `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`. The tracker then starts minimized: the overlay only,

@@ -67,12 +67,14 @@ public sealed class MainViewModel : ObservableObject
             HotkeyMessage = applyHotkeys(ToggleOverlayText, ToggleClickThroughText) ?? "Hotkeys applied.";
             Raise(nameof(AdapterOverride));
         });
+        Diagnostics = new DiagnosticsViewModel(model);
         ResetSessionCommand = new RelayCommand(() => { model.Stats.Reset(DateTime.UtcNow); foreach (var r in model.Rows) r.RefreshSession(); View.Refresh(); model.NotifySession(); });
     }
 
     public TrackerModel Model { get; }
     public OverlayViewModel Overlay { get; }
     public DataTransferViewModel Data { get; }
+    public DiagnosticsViewModel Diagnostics { get; }
     public ICollectionView View { get; }
 
     public IReadOnlyList<string> GenusOptions { get; } = ["All", "Fera", "Cogni", "Natura", "Varian", "Special"];
@@ -81,7 +83,7 @@ public sealed class MainViewModel : ObservableObject
     public IReadOnlyList<string> StateOptions { get; } = ["All", "Registered", "Unregistered"];
     public IReadOnlyList<string> SortOptions { get; } = ["Id", "Name", "Level", "Progress", "Session"];
     public IReadOnlyList<string> TabOptions { get; } = ["Collection", "Settings"];
-    public IReadOnlyList<string> SettingsSections { get; } = ["General", "Overlay", "Capture", "Opcodes", "Data", "About"];
+    public IReadOnlyList<string> SettingsSections { get; } = ["General", "Overlay", "Capture", "Opcodes", "Data", "Diagnostics", "About"];
 
     public ICommand ApplyHotkeysCommand { get; }
     public ICommand ApplyAdapterCommand { get; }
@@ -276,7 +278,15 @@ public sealed class MainViewModel : ObservableObject
     public bool IsCollectionTab => _tab == "Collection";
     public bool IsSettingsTab => _tab == "Settings";
 
-    public string SelectedSettingsSection { get => _settingsSection; set => Set(ref _settingsSection, value ?? "General"); }
+    public string SelectedSettingsSection
+    {
+        get => _settingsSection;
+        set
+        {
+            if (Set(ref _settingsSection, value ?? "General") && _settingsSection == "Diagnostics")
+                Diagnostics.Refresh();
+        }
+    }
 
     public PetRowViewModel? SelectedRow { get => _selected; set => Set(ref _selected, value); }
 

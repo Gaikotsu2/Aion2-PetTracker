@@ -16,6 +16,12 @@ internal static class Dialogs
         return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
     }
 
+    public static string? SaveText(string title, string fileName)
+    {
+        var dialog = new SaveFileDialog { Title = title, FileName = fileName, Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*", DefaultExt = ".txt", AddExtension = true };
+        return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
+    }
+
     public static string? OpenJson(string title)
     {
         var dialog = new OpenFileDialog { Title = title, Filter = JsonFilter, CheckFileExists = true };

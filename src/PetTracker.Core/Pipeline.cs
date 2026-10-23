@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using PetTracker.Core.Capture;
+using PetTracker.Core.Diagnostics;
 using PetTracker.Core.Protocol;
 using PetTracker.Core.Recording;
 
@@ -93,6 +94,7 @@ public sealed class Pipeline : IDisposable
     /// <summary>Starts capturing. Throws <see cref="NpcapNotAvailableException"/> if Npcap is missing.</summary>
     public void Start()
     {
+        DiagLog.Info("Pipeline", $"starting; process '{_options.ProcessName}', heartbeat fallback {_options.HeartbeatFallback}, extra excluded ports [{string.Join(",", _options.ExcludedPorts)}]");
         NpcapSource.EnsureAvailable();
         _source.SegmentCaptured += s => _channel.Writer.TryWrite(new Input(s, null, false));
         _locator.Changed += c => _channel.Writer.TryWrite(new Input(null, c, false));
@@ -100,6 +102,7 @@ public sealed class Pipeline : IDisposable
         _worker = Task.Run(() => RunAsync(_cts.Token));
         _ticker = Task.Run(() => TickAsync(_cts.Token));
         _locator.Start(_options.PollInterval);
+        DiagLog.Info("Pipeline", $"started: {_source.Description}");
     }
 
     private async Task TickAsync(CancellationToken token)
@@ -129,11 +132,18 @@ public sealed class Pipeline : IDisposable
                 catch (Exception ex) when (ex is NpcapNotAvailableException or InvalidOperationException)
                 {
                     _error = ex.Message;
+                    DiagLog.Error("Pipeline", "error while processing capture input", ex);
                     Emit(new ConnectionEvent(DateTime.UtcNow.Ticks, ConnectionEventKind.Info, 0, "error: " + ex.Message));
                 }
             }
         }
         catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            // Anything else would end the worker silently and leave a tracker that looks alive but decodes nothing.
+            _error = ex.Message;
+            DiagLog.Error("Pipeline", "worker stopped by an unexpected exception; capture is no longer decoding", ex);
+        }
     }
 
     private void OnConnections(IReadOnlyList<GameConnection> connections)
@@ -148,7 +158,51 @@ public sealed class Pipeline : IDisposable
             Emit(record);
     }
 
-    private void OnTick() => _flows.Expire(DateTime.UtcNow.Ticks);
+    private void OnTick()
+    {
+        var now = DateTime.UtcNow;
+        _flows.Expire(now.Ticks);
+        if (now - _lastStatsLog >= StatsInterval)
+        {
+            _lastStatsLog = now;
+            LogStats();
+        }
+    }
+
+    /// <summary>Counters and flow verdicts, written only when something changed since the last line.</summary>
+    private void LogStats()
+    {
+        var s = Status;
+        var line = $"phase '{s.Phase}'; packets {s.Packets}, s2c bytes {s.BytesS2C}, frames {s.Frames} (inner {s.InnerFrames}, bundles {s.Bundles}), " +
+                   $"heartbeats {s.Heartbeats}, desyncs {s.Desyncs}, gaps {s.Gaps}, flows rejected {s.FlowsRejected}, active flow {s.ActiveFlowId?.ToString() ?? "none"}, connections {s.Connections.Count}";
+        if (line != _lastStatsLine)
+        {
+            _lastStatsLine = line;
+            DiagLog.Info("Stats", line);
+        }
+
+        foreach (var flow in _processor.Flows)
+        {
+            var summary = $"flow {flow.FlowId}: {(flow.Rejected ? "rejected" : flow.Class.ToString())}, syn seen {flow.SawSyn}, {flow.Bytes} bytes, " +
+                          $"{flow.Frames} frames, {flow.Heartbeats} heartbeats, {flow.Desyncs} desyncs" + (flow.Reason is null ? "" : $"; {flow.Reason}");
+            if (!_flowLines.TryGetValue(flow.FlowId, out var previous) || previous != summary)
+            {
+                _flowLines[flow.FlowId] = summary;
+                DiagLog.Info("Flow", summary);
+            }
+        }
+        if (Opcodes.TakeReport(OpcodeName) is { } opcodes)
+            DiagLog.Info("Opcodes", opcodes);
+    }
+
+    private static readonly TimeSpan StatsInterval = TimeSpan.FromSeconds(30);
+    private DateTime _lastStatsLog = DateTime.UtcNow;
+    private string? _lastStatsLine;
+    private readonly Dictionary<int, string> _flowLines = [];
+
+    /// <summary>Frame counts per opcode seen on the game stream (numbers only); the app adds names for known opcodes.</summary>
+    public OpcodeHistogram Opcodes { get; } = new();
+    public Func<ushort, string?> OpcodeName { get; set; } = _ => null;
 
     private void Handle(TcpSegment segment)
     {
@@ -165,12 +219,20 @@ public sealed class Pipeline : IDisposable
                 break;
             case ConnectionEvent { Kind: ConnectionEventKind.FlowOpened or ConnectionEventKind.FlowJoined } e:
                 _flowNames[e.FlowId] = e.Detail;
+                DiagLog.Info("Flow", $"{e.Kind} flow {e.FlowId}: {e.Detail}");
+                break;
+            case ConnectionEvent { Kind: ConnectionEventKind.FlowClosed or ConnectionEventKind.HeartbeatLocked or ConnectionEventKind.Info } e:
+                DiagLog.Info("Flow", $"{e.Kind} flow {e.FlowId}: {e.Detail}");
                 break;
         }
 
         RecordProduced?.Invoke(record);
         if (_processor.Process(record) is { } frames)
+        {
+            foreach (var frame in frames.Frames)
+                Opcodes.Add(frame.Opcode);
             FramesDecoded?.Invoke(frames);
+        }
     }
 
     public string? FlowName(int flowId) => _flowNames.GetValueOrDefault(flowId);
@@ -180,6 +242,7 @@ public sealed class Pipeline : IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        DiagLog.Info("Pipeline", "stopping");
         _cts.Cancel();
         _channel.Writer.TryComplete();
         _locator.Dispose();

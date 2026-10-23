@@ -5,6 +5,7 @@ using System.Windows.Threading;
 using PetTracker.App.Infrastructure;
 using PetTracker.Core;
 using PetTracker.Core.Capture;
+using PetTracker.Core.Diagnostics;
 using PetTracker.Core.Domain;
 using PetTracker.Core.Messages;
 using PetTracker.Core.Persistence;
@@ -144,6 +145,7 @@ public sealed class TrackerModel : ObservableObject, IDisposable
         {
             if (_status == value)
                 return;
+            DiagLog.Info("Status", $"{_status.Kind} -> {value.Kind}: {value.Text}");
             _status = value;
             Raise();
             Raise(nameof(StatusTooltip));
@@ -154,6 +156,9 @@ public sealed class TrackerModel : ObservableObject, IDisposable
     /// <summary>Why the capture is not running (Npcap missing, bad adapter), or null.</summary>
     public string? CaptureProblem { get; private set; }
     public bool NpcapMissing => _npcapMissing;
+
+    /// <summary>The running pipeline's counters, or null while it is not running.</summary>
+    public PipelineStatus? CaptureStatus => _pipeline?.Status;
 
     public event Action? StatusChanged;
     public event Action? PinsChanged;
@@ -262,24 +267,27 @@ public sealed class TrackerModel : ObservableObject, IDisposable
         _npcapMissing = false;
         CaptureProblem = null;
         var options = new PipelineOptions { AdapterOverride = Settings.AdapterOverride };
+        DiagLog.Info("Capture", "starting capture");
         Task.Run(() =>
         {
             Pipeline? pipeline = null;
             try
             {
-                pipeline = new Pipeline(options);
+                pipeline = new Pipeline(options) { OpcodeName = OpcodeNameOf };
                 pipeline.FramesDecoded += OnFrames;
                 Interlocked.Exchange(ref _pipeline, pipeline)?.Dispose();
                 pipeline.Start();
             }
             catch (NpcapNotAvailableException ex)
             {
+                DiagLog.Error("Capture", "capture could not start: Npcap missing or unusable", ex);
                 Interlocked.CompareExchange(ref _pipeline, null, pipeline);
                 pipeline?.Dispose();
                 _ui.BeginInvoke(() => { _npcapMissing = true; CaptureProblem = ex.Message; UpdateStatus(); });
             }
             catch (Exception ex)
             {
+                DiagLog.Error("Capture", "capture could not start", ex);
                 Interlocked.CompareExchange(ref _pipeline, null, pipeline);
                 pipeline?.Dispose();
                 _ui.BeginInvoke(() => { CaptureProblem = ex.Message; UpdateStatus(); });
@@ -287,8 +295,15 @@ public sealed class TrackerModel : ObservableObject, IDisposable
         });
     }
 
+    private string? OpcodeNameOf(ushort opcode)
+    {
+        var registry = Registry;
+        return registry.MessageNamesKnown.FirstOrDefault(n => registry.Is(n, opcode));
+    }
+
     public void RestartCapture()
     {
+        DiagLog.Info("Capture", "restart requested");
         _firstHeartbeat = null;
         _buffer.Clear();
         _lastFlowId = -1;
@@ -367,7 +382,10 @@ public sealed class TrackerModel : ObservableObject, IDisposable
         {
             OpcodeDetection? found = null;
             try { found = new PetOpcodeDetector(catalog).Detect(frames); }
-            catch (Exception ex) when (ex is InvalidDataException or ArgumentException or IndexOutOfRangeException) { }
+            catch (Exception ex) when (ex is InvalidDataException or ArgumentException or IndexOutOfRangeException)
+            {
+                DiagLog.Warn("Detect", "opcode detection failed", ex);
+            }
             _ui.BeginInvoke(() =>
             {
                 _detecting = false;
@@ -416,9 +434,36 @@ public sealed class TrackerModel : ObservableObject, IDisposable
     /// <summary>Appends a system line to events.jsonl.</summary>
     public void Note(string kind, string message)
     {
+        DiagLog.Info("Note." + kind, message);
         try { _log.Append(new SystemNote(DateTime.UtcNow, kind, message)); }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        catch (IOException ex) { DiagLog.Warn("Persist", "events.jsonl could not be written", ex); }
+        catch (UnauthorizedAccessException ex) { DiagLog.Warn("Persist", "events.jsonl could not be written", ex); }
+    }
+
+    /// <summary>A text block describing the tracker's current state, for the diagnostic report. Contains no identifying data.</summary>
+    public string DiagnosticSnapshot()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"tracker status  : {Status.Kind} - {Status.Text}");
+        sb.AppendLine($"capture problem : {CaptureProblem ?? "none"}; Npcap missing flag {_npcapMissing}");
+        if (_pipeline?.Status is { } s)
+        {
+            sb.AppendLine($"pipeline phase  : {s.Phase}{(s.Error is null ? "" : "; error: " + s.Error)}");
+            sb.AppendLine($"capture         : {s.Capture}");
+            sb.AppendLine($"counters        : packets {s.Packets}, s2c bytes {s.BytesS2C}, frames {s.Frames} (inner {s.InnerFrames}, bundles {s.Bundles}), " +
+                          $"heartbeats {s.Heartbeats}, desyncs {s.Desyncs}, gaps {s.Gaps}, flows rejected {s.FlowsRejected}");
+            sb.AppendLine($"game connections: {s.Connections.Count}; active flow {s.ActiveFlowId?.ToString() ?? "none"}");
+        }
+        else
+        {
+            sb.AppendLine("pipeline        : not running");
+        }
+        sb.AppendLine($"collection      : {Collection.Pets.Count} pets known; snapshot at {(Collection.SnapshotAt is { } at ? at.ToString("u") : "never")}; pet event seen {_petEventSeen}");
+        sb.AppendLine($"opcodes         : {Describe(_registry)}");
+        sb.AppendLine($"catalog         : {Catalog.KnownIds.Count()} pets");
+        sb.AppendLine($"settings        : adapter override {(Settings.AdapterOverride is null ? "not set" : "set")}, close to tray {Settings.CloseToTray}, " +
+                      $"overlay visible {Settings.OverlayVisible}, click-through {Settings.ClickThrough}, scale {Settings.Scale}, opacity {Settings.Opacity}");
+        return sb.ToString();
     }
 
     // --- framing drift --------------------------------------------------------------------------------------------
@@ -479,6 +524,10 @@ public sealed class TrackerModel : ObservableObject, IDisposable
         foreach (var e in events)
         {
             Stats.Observe(e);
+            if (e is Inconsistency inconsistency)
+                DiagLog.Warn("Domain", $"inconsistency (pet {inconsistency.PetId?.ToString() ?? "-"}, needs resync {inconsistency.NeedsResync}): {inconsistency.Message}");
+            else if (e is SnapshotLoaded loaded)
+                DiagLog.Info("Domain", $"snapshot loaded: {loaded.Count} pets ({loaded.TotalKnown} known in the catalog)");
             session |= e is SoulGained;
             snapshot |= e is SnapshotLoaded;
 
@@ -563,15 +612,15 @@ public sealed class TrackerModel : ObservableObject, IDisposable
             _dirty = false;
             _lastSave = DateTime.UtcNow;
         }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        catch (IOException ex) { DiagLog.Warn("Persist", "collection.json could not be saved", ex); }
+        catch (UnauthorizedAccessException ex) { DiagLog.Warn("Persist", "collection.json could not be saved", ex); }
     }
 
     public void SaveSettings()
     {
         try { _settingsStore.Save(Settings); }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        catch (IOException ex) { DiagLog.Warn("Persist", "settings.json could not be saved", ex); }
+        catch (UnauthorizedAccessException ex) { DiagLog.Warn("Persist", "settings.json could not be saved", ex); }
     }
 
     // --- import / restore ---------------------------------------------------------------------------------------

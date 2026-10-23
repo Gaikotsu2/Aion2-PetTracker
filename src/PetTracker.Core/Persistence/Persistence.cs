@@ -15,6 +15,8 @@ public sealed record AppPaths(string Folder)
     public string Opcodes => Path.Combine(Folder, "opcodes.json");
     /// <summary>Automatic backups written before an import or a restore replaces the collection.</summary>
     public string Backups => Path.Combine(Folder, "backups");
+    /// <summary>Diagnostic text logs (pettracker-yyyyMMdd.log), pruned after 3 days.</summary>
+    public string Logs => Path.Combine(Folder, "logs");
 
     public static string DefaultFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Aion2PetTracker");
 

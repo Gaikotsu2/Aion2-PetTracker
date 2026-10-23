@@ -5,7 +5,7 @@ using PetTracker.Core;
 namespace PetTracker.App.Infrastructure;
 
 /// <summary>
-/// Opens exactly six kinds of target with the shell: our own data folder, our own opcodes.json, https://npcap.com,
+/// Opens exactly seven kinds of target with the shell: our own data folder, our own logs folder (inside it), our own opcodes.json, https://npcap.com,
 /// https://petsouls.dev/, this project's GitHub repository and a TH.GL pet page (https://aion2.th.gl/db/pets/pet_NNNN, see <see cref="LinkPolicy"/>). Anything else is refused, so this can never be
 /// turned into a way to start or reach another program. The app itself makes no network calls; the browser does.
 /// </summary>
@@ -18,7 +18,7 @@ internal static class ExternalLinks
 
     public static string PetUrl(int petId) => LinkPolicy.PetUrl(petId);
 
-    public static bool Open(string target, string dataFolder, string? opcodesFile = null)
+    public static bool Open(string target, string dataFolder, string? opcodesFile = null, string? logsFolder = null)
     {
         var isUrl = LinkPolicy.IsAllowedUrl(target);
         var isFolder = false;
@@ -28,7 +28,8 @@ internal static class ExternalLinks
             try
             {
                 var full = Path.GetFullPath(target);
-                isFolder = string.Equals(full, Path.GetFullPath(dataFolder), StringComparison.OrdinalIgnoreCase);
+                isFolder = string.Equals(full, Path.GetFullPath(dataFolder), StringComparison.OrdinalIgnoreCase)
+                    || (logsFolder is not null && string.Equals(full, Path.GetFullPath(logsFolder), StringComparison.OrdinalIgnoreCase));
                 isOpcodes = opcodesFile is not null && string.Equals(full, Path.GetFullPath(opcodesFile), StringComparison.OrdinalIgnoreCase);
             }
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException) { }

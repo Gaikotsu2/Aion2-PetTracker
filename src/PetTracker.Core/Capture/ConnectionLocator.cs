@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using PetTracker.Core.Diagnostics;
 
 namespace PetTracker.Core.Capture;
 
@@ -21,6 +22,8 @@ public sealed class ConnectionLocator(string processName = "AION2") : IDisposabl
     private CancellationTokenSource? _cts;
     private Task? _loop;
     private IReadOnlyList<GameConnection> _current = [];
+    private int _lastPidCount = -1;
+    private int _pollErrors;
 
     public string ProcessName { get; } = processName;
     public IReadOnlyList<GameConnection> Current => _current;
@@ -38,6 +41,13 @@ public sealed class ConnectionLocator(string processName = "AION2") : IDisposabl
     public IReadOnlyList<GameConnection> Poll()
     {
         var pids = FindPids();
+        if (pids.Count != _lastPidCount)
+        {
+            DiagLog.Info("Locator", pids.Count == 0
+                ? $"process '{ProcessName}' not running (was {_lastPidCount} instance(s))"
+                : $"process '{ProcessName}' found: {pids.Count} instance(s)");
+            _lastPidCount = pids.Count;
+        }
         return pids.Count == 0 ? [] : Select(TcpTable.Read(), pids);
     }
 
@@ -62,7 +72,13 @@ public sealed class ConnectionLocator(string processName = "AION2") : IDisposabl
         do
         {
             try { Publish(Poll()); }
-            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { Publish([]); }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                // Logged for the first failure and then every 60th, so a persistent fault is visible without flooding the file.
+                if (_pollErrors++ % 60 == 0)
+                    DiagLog.Warn("Locator", $"TCP-table poll failed (failure #{_pollErrors})", ex);
+                Publish([]);
+            }
         }
         while (await WaitAsync(timer, token));
     }
@@ -78,6 +94,7 @@ public sealed class ConnectionLocator(string processName = "AION2") : IDisposabl
         if (_current.SequenceEqual(latest))
             return;
         _current = latest;
+        DiagLog.Info("Locator", $"game connections changed: {latest.Count} established ({string.Join("; ", latest.Select(c => c.Remote))})");
         Changed?.Invoke(latest);
     }
 

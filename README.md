@@ -102,6 +102,8 @@ your clicks go to the game instead). Opacity, size and hotkeys are in Settings �
 - **Capture:** only needed with a VPN or ping reducer (see [Troubleshooting](#troubleshooting)).
 - **Opcodes:** only needed after a game update (see [Troubleshooting](#troubleshooting)).
 - **Data:** PetSouls.dev and backups, below.
+- **Diagnostics:** a step-by-step guide to saving a report for support (see
+  [Reporting a problem](#reporting-a-problem)).
 
 **PetSouls.dev and backups.** Settings → Data.
 
@@ -160,6 +162,18 @@ Get-ChildItem "$env:LOCALAPPDATA\Programs\Aion2PetTracker" -Recurse | Unblock-Fi
 **The install command fails with an error about `dotnet`.** You ran it without `-NoPublish`, so it tried to build the
 app. Either add `-NoPublish` (when installing the ready-made download), or, when building from source, install the .NET
 10 SDK, close the terminal, and open a new one.
+
+### Reporting a problem
+
+If something does not work, open Settings → Diagnostics. Leave the tracker running with the game open while the
+problem happens, click **Save report...**, and attach the saved `.txt` file to your support request or GitHub issue
+(**Copy report** puts the same text on the clipboard).
+
+The tracker keeps technical logs for this in `%AppData%\Aion2PetTracker\logs`, and deletes anything older than 3 days.
+They contain versions, Npcap and adapter checks, whether the game was found, decoder counters and opcode numbers. IP
+addresses are replaced by tokens such as `ip#1(public)`, your Windows user name, computer name and profile folders are
+removed, and packet contents, pet names and account data are never logged. Nothing is sent anywhere; the Settings page
+shows a preview of exactly what a report contains, and you decide whether to share it.
 
 ## More technical information
 
